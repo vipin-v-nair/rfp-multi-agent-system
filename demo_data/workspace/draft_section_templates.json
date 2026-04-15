@@ -1,0 +1,39 @@
+{
+  "sections": [
+    {
+      "section_id": "executive_summary",
+      "title": "Executive Summary",
+      "content": "",
+      "status": "not_started",
+      "version": 0
+    },
+    {
+      "section_id": "technical_approach",
+      "title": "Technical Approach",
+      "content": "",
+      "status": "not_started",
+      "version": 0
+    },
+    {
+      "section_id": "security",
+      "title": "Security and Compliance",
+      "content": "",
+      "status": "not_started",
+      "version": 0
+    },
+    {
+      "section_id": "implementation_plan",
+      "title": "Implementation Plan",
+      "content": "",
+      "status": "not_started",
+      "version": 0
+    },
+    {
+      "section_id": "pricing_assumptions",
+      "title": "Pricing Assumptions",
+      "content": "",
+      "status": "not_started",
+      "version": 0
+    }
+  ]
+}

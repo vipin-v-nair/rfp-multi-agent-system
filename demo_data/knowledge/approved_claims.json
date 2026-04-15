@@ -1,0 +1,25 @@
+[
+  {
+    "claim_id": "claim_001",
+    "text": "The platform supports encryption at rest and in transit for supported deployments.",
+    "evidence_ids": ["chunk_002"],
+    "usage_constraints": [
+      "Do not imply customer-managed keys unless separately verified."
+    ],
+    "category": "security"
+  },
+  {
+    "claim_id": "claim_002",
+    "text": "Supported deployment patterns include secure cloud architectures with access controls, audit logging, and network isolation controls.",
+    "evidence_ids": ["chunk_003"],
+    "usage_constraints": [],
+    "category": "security"
+  },
+  {
+    "claim_id": "claim_003",
+    "text": "A phased implementation approach begins with discovery, pilot deployment, controlled rollout, and operational optimization.",
+    "evidence_ids": ["chunk_004"],
+    "usage_constraints": [],
+    "category": "implementation"
+  }
+]

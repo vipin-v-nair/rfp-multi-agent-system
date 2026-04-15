@@ -1,0 +1,70 @@
+[
+  {
+    "chunk_id": "chunk_001",
+    "doc_id": "doc_001",
+    "title": "Platform Overview",
+    "text": "The platform supports AI-assisted customer service workflows, agent assist, knowledge retrieval, and omnichannel orchestration.",
+    "claim_types": [
+      "feature",
+      "solution"
+    ],
+    "tags": [
+      "contact_center_ai",
+      "agent_assist"
+    ]
+  },
+  {
+    "chunk_id": "chunk_002",
+    "doc_id": "doc_002",
+    "title": "Security Controls",
+    "text": "The platform supports encryption at rest and encryption in transit for supported deployments.",
+    "claim_types": [
+      "security"
+    ],
+    "tags": [
+      "encryption",
+      "security"
+    ]
+  },
+  {
+    "chunk_id": "chunk_003",
+    "doc_id": "doc_002",
+    "title": "Hosting Controls",
+    "text": "Supported deployment patterns include secure cloud architectures with access controls, audit logging, and network isolation controls.",
+    "claim_types": [
+      "security",
+      "hosting"
+    ],
+    "tags": [
+      "hosting",
+      "audit",
+      "access_control"
+    ]
+  },
+  {
+    "chunk_id": "chunk_004",
+    "doc_id": "doc_003",
+    "title": "Implementation Approach",
+    "text": "A phased implementation approach is recommended, beginning with discovery, pilot deployment, controlled rollout, and operational optimization.",
+    "claim_types": [
+      "implementation"
+    ],
+    "tags": [
+      "rollout",
+      "services"
+    ]
+  },
+  {
+    "chunk_id": "chunk_005",
+    "doc_id": "doc_004",
+    "title": "Commercial Assumptions",
+    "text": "Commercial proposals should clearly separate assumptions, scope dependencies, and optional services.",
+    "claim_types": [
+      "commercial"
+    ],
+    "tags": [
+      "pricing",
+      "assumptions"
+    ]
+  }
+]

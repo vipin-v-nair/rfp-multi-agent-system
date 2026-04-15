@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {
+      "rule_id": "apr_rule_001",
+      "trigger": "reference_exception",
+      "approval_role": "sales_lead"
+    },
+    {
+      "rule_id": "apr_rule_002",
+      "trigger": "commercial_override",
+      "approval_role": "deal_desk"
+    }
+  ]
+}

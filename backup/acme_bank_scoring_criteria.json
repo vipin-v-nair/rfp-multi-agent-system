@@ -1,0 +1,10 @@
+{
+  "project_id": "rfp_001",
+  "criteria": [
+    { "name": "technical_fit", "weight": 0.30 },
+    { "name": "security_and_compliance", "weight": 0.25 },
+    { "name": "implementation_readiness", "weight": 0.20 },
+    { "name": "commercial_flexibility", "weight": 0.15 },
+    { "name": "references_and_experience", "weight": 0.10 }
+  ]
+}

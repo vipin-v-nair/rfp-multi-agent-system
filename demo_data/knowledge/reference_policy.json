@@ -1,0 +1,14 @@
+{
+  "rules": [
+    {
+      "rule_id": "ref_rule_001",
+      "description": "Named customer references are not allowed unless explicitly approved",
+      "action": "block"
+    },
+    {
+      "rule_id": "ref_rule_002",
+      "description": "Anonymized reference summaries are allowed when drawn from approved talking points",
+      "action": "allow"
+    }
+  ]
+}

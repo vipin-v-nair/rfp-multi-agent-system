@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFP Multi-Agent System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-color: #f8fafc;
+            --accent-color: #38bdf8;
+            --success-color: #4ade80;
+            --warning-color: #facc15;
+            --danger-color: #f87171;
+            --muted-text: #94a3b8;
+            --border-color: #334155;
+            --glass-bg: rgba(255, 255, 255, 0.03);
+            --glass-border: rgba(255, 255, 255, 0.05);
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 50% 50%, #1e293b 0%, #0f172a 100%);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        header {
+            width: 100%;
+            /* max-width: 1400px; */
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding: 20px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+        }
+
+        h1 {
+            font-size: 2rem;
+            font-weight: 600;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin: 0;
+        }
+
+        .status-badge {
+            background-color: rgba(56, 189, 248, 0.1);
+            color: var(--accent-color);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        main {
+            width: 100%;
+            /* max-width: 1400px; */
+            display: flex;
+            gap: 0;
+            flex: 1;
+            height: calc(100vh - 180px);
+            overflow: hidden;
+        }
+
+        .pane {
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-radius: 16px;
+            border: 1px solid var(--glass-border);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        #left-pane { width: 300px; min-width: 150px; }
+        #center-pane { flex: 1; min-width: 300px; }
+        #right-pane { width: 400px; min-width: 200px; }
+
+        .resizer {
+            width: 8px;
+            cursor: col-resize;
+            background: transparent;
+            transition: background 0.2s;
+            z-index: 10;
+        }
+
+        .resizer:hover, .resizer.resizing {
+            background: rgba(56, 189, 248, 0.2);
+        }
+
+        .pane-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-color);
+            font-weight: 600;
+            color: var(--accent-color);
+            font-size: 1.1rem;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .pane-content {
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        /* Timeline */
+        .timeline-event {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 15px;
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+
+        .timeline-event:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
+        .timeline-event::before {
+            content: '';
+            position: absolute;
+            left: -10px;
+            top: 20px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-color);
+        }
+
+        .event-author {
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: var(--text-color);
+        }
+
+        .event-text {
+            color: var(--muted-text);
+            line-height: 1.4;
+        }
+
+        /* Tabs */
+        .tabs-header {
+            display: flex;
+            background: rgba(0, 0, 0, 0.2);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 15px;
+            background: none;
+            border: none;
+            color: var(--muted-text);
+            font-family: inherit;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .tab-btn:hover {
+            color: var(--text-color);
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-color);
+            border-bottom: 2px solid var(--accent-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+        }
+
+        #draft {
+            display: none; /* Controlled by JS */
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+        }
+
+        #draft.active {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            height: calc(100vh - 180px);
+            overflow: hidden;
+        }
+
+        #draft-intake-column, #draft-evidence-column, #draft-solution-column {
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+            padding-right: 10px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Cards & Payloads */
+        .a2ui-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            margin-bottom: 15px;
+            cursor: pointer;
+            transition: transform 0.2s, border-color 0.2s;
+            max-width: 100%;
+            box-sizing: border-box;
+        }
+
+        .a2ui-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-color);
+        }
+
+        .a2ui-payload {
+            background-color: #0f172a;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            color: #38bdf8;
+            border: 1px solid #334155;
+            margin-top: 10px;
+        }
+
+        /* Agent Badges in Timeline */
+        .agent-badge {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .agent-intake { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+        .agent-evidence { background-color: rgba(167, 139, 250, 0.2); color: #a78bfa; }
+        .agent-solution { background-color: rgba(244, 114, 182, 0.2); color: #f472b6; }
+        .agent-governance { background-color: rgba(250, 204, 21, 0.2); color: #facc15; }
+        .agent-editor { background-color: rgba(74, 222, 128, 0.2); color: #4ade80; }
+        .agent-coordinator { background-color: rgba(255, 255, 255, 0.2); color: #ffffff; }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 100;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.6);
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            background-color: var(--bg-color);
+            margin: 5% auto;
+            padding: 30px;
+            border: 1px solid var(--border-color);
+            width: 70%;
+            max-width: 800px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            position: relative;
+            color: var(--text-color);
+        }
+
+        .close {
+            color: var(--muted-text);
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            position: absolute;
+            right: 20px;
+            top: 15px;
+        }
+
+        .close:hover,
+        .close:focus {
+            color: var(--text-color);
+            text-decoration: none;
+        }
+
+        footer {
+            width: 100%;
+            /* max-width: 1400px; */
+            padding: 15px;
+            color: var(--muted-text);
+            font-size: 0.85rem;
+            text-align: center;
+            border-top: 1px solid var(--glass-border);
+            margin-top: 20px;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.1); }
+        ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--muted-text); }
+
+        @media (max-width: 1024px) {
+            main {
+                flex-direction: column;
+                height: auto;
+            }
+            .pane { height: 400px; width: 100% !important; }
+            .resizer { display: none; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>RFP Multi-Agent System</h1>
+        <div class="status-badge" id="system-status">Workflow Idle</div>
+    </header>
+
+    <main id="main-layout">
+        <!-- Left Rail: Timeline -->
+        <div class="pane" id="left-pane">
+            <div class="pane-header">Workflow Timeline</div>
+            <div class="pane-content" id="timeline-content">
+                <div style="color: var(--muted-text); text-align: center; padding: 20px;">
+                    Waiting for workflow to start...
+                </div>
+            </div>
+        </div>
+
+        <div class="resizer" id="resizer-left"></div>
+
+        <!-- Center Workspace: Tabbed -->
+        <div class="pane" id="center-pane">
+            <div class="tabs-header">
+                <button class="tab-btn active" onclick="switchTab('draft')">Drafting Board</button>
+                <button class="tab-btn" onclick="switchTab('governance')">Governance</button>
+                <button class="tab-btn" onclick="switchTab('final')">Final Response</button>
+                <button class="tab-btn" onclick="switchTab('readable')">Readable Response</button>
+            </div>
+            
+            <div id="draft" class="tab-content active">
+                <div id="draft-intake-column">
+                    <h3 style="color: var(--accent-color); margin-bottom: 10px;">Intake Extracts</h3>
+                </div>
+                <div id="draft-evidence-column">
+                    <h3 style="color: var(--accent-color); margin-bottom: 10px;">Evidence Matches</h3>
+                </div>
+                <div id="draft-solution-column">
+                    <h3 style="color: var(--accent-color); margin-bottom: 10px;">Solution Drafts</h3>
+                </div>
+            </div>
+            
+            
+            <div id="governance" class="tab-content">
+                <div style="color: var(--muted-text); text-align: center; padding: 20px;">
+                    Governance reviews will appear here.
+                </div>
+            </div>
+            
+            <div id="final" class="tab-content">
+                <div style="color: var(--muted-text); text-align: center; padding: 20px;">
+                    Final response will appear here.
+                </div>
+            </div>
+            
+            <div id="readable" class="tab-content">
+                <div style="color: var(--muted-text); text-align: center; padding: 20px;">
+                    Readable response will appear here.
+                </div>
+            </div>
+        </div>
+
+        <div class="resizer" id="resizer-right"></div>
+
+        <!-- Right Rail: Shared Memory Snapshot -->
+        <div class="pane" id="right-pane">
+            <div class="pane-header">Shared Memory Snapshot</div>
+            <div class="pane-content" id="snapshot-content">
+                <div style="color: var(--muted-text); text-align: center; padding: 20px;">
+                    Session state overview.
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal for full details -->
+    <div id="myModal" class="modal">
+      <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <div id="modal-body-content"></div>
+      </div>
+    </div>
+
+    <footer>
+        Built with ADK and A2UI | Powered by Gemini
+    </footer>
+
+    <script>
+        let processedEventCount = 0;
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            const btn = Array.from(document.querySelectorAll('.tab-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+            if (btn) btn.classList.add('active');
+            
+            const tab = document.getElementById(tabId);
+            if (tab) tab.classList.add('active');
+        }
+
+        function showModal(contentHtml) {
+            const modal = document.getElementById('myModal');
+            const modalBody = document.getElementById('modal-body-content');
+            modalBody.innerHTML = contentHtml;
+            modal.style.display = "block";
+        }
+
+        function closeModal() {
+            document.getElementById('myModal').style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            const modal = document.getElementById('myModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        function fetchEvents() {
+            fetch('workflow_events.json?t=' + Date.now())
+                .then(response => response.json())
+                .then(events => {
+                    if (events.length > processedEventCount) {
+                        const statusBadge = document.getElementById('system-status');
+                        statusBadge.textContent = "Workflow Running";
+                        statusBadge.style.backgroundColor = "rgba(74, 222, 128, 0.2)";
+                        statusBadge.style.color = "#4ade80";
+                        
+                        const timelineContent = document.getElementById('timeline-content');
+                        if (processedEventCount === 0) timelineContent.innerHTML = '';
+                        
+                        const newEvents = events.slice(processedEventCount);
+                        
+                        newEvents.forEach(event => {
+                            const evDiv = document.createElement('div');
+                            evDiv.className = 'timeline-event';
+                            
+                            const authorDiv = document.createElement('div');
+                            authorDiv.className = 'event-author';
+                            
+                            // Extract action or summarize action based on content
+                            let eventTitle = `${event.author} Action`;
+                            const toolMatch = event.content.match(/name='([^']*)'/);
+                            if (toolMatch) {
+                                const toolName = toolMatch[1];
+                                if (toolName.includes('analysis')) eventTitle = 'Extracted Requirements';
+                                else if (toolName.includes('evidence')) eventTitle = 'Searched Evidence';
+                                else if (toolName.includes('solution')) eventTitle = 'Drafted Response Section';
+                                else if (toolName.includes('governance')) eventTitle = 'Validated Compliance';
+                                else if (toolName.includes('final_response')) eventTitle = 'Assembled Final Response';
+                            } else {
+                                const author = event.author ? event.author.toLowerCase() : 'intake';
+                                if (author === 'intake') eventTitle = 'RFP Content Analyzed';
+                                else if (author === 'evidence') eventTitle = 'Evidence Gathered';
+                                else if (author === 'solution') eventTitle = 'Solution Sections Drafted';
+                                else if (author === 'governance') eventTitle = 'Governance Review Completed';
+                                else if (author === 'editor') eventTitle = 'Response Assembled';
+                            }
+                            authorDiv.textContent = eventTitle + ' ';
+                            
+                            const badge = document.createElement('span');
+                            const authorClass = event.author ? event.author.toLowerCase() : 'intake';
+                            badge.className = `agent-badge agent-${authorClass}`;
+                            badge.textContent = event.author || 'Unknown';
+                            authorDiv.appendChild(badge);
+                            
+                            const textDiv = document.createElement('div');
+                            textDiv.className = 'event-text';
+                            
+                            const a2uiRegex = /<a2ui-json>([\s\S]*?)<\/a2ui-json>/;
+                            const match = event.content.match(a2uiRegex);
+                            
+                            let overviewText = '';
+                            if (match) {
+                                overviewText = 'Populated interactive component elements in dashboard.';
+                            } else if (toolMatch) {
+                                overviewText = `Called ${toolMatch[1]} to update shared state.`;
+                            } else {
+                                overviewText = event.content.length > 100 ? event.content.substring(0, 100) + '...' : event.content;
+                            }
+                            textDiv.textContent = overviewText;
+                            
+                            evDiv.appendChild(authorDiv);
+                            evDiv.appendChild(textDiv);
+                            
+                            // Add click listener for modal
+                            evDiv.addEventListener('click', () => {
+                                let modalContent = `<h3>Event from ${event.author}</h3>`;
+                                if (match) {
+                                    const textBefore = event.content.split('<a2ui-json>')[0];
+                                    if (textBefore) modalContent += `<p>${textBefore}</p>`;
+                                    modalContent += `<pre class="a2ui-payload">${match[1].trim()}</pre>`;
+                                } else {
+                                    modalContent += `<p>${event.content}</p>`;
+                                }
+                                showModal(modalContent);
+                            });
+                            
+                            timelineContent.appendChild(evDiv);
+                            
+                            document.getElementById('timeline-content').scrollTop = document.getElementById('timeline-content').scrollHeight;
+                            
+                            let payload = null;
+                            if (match) {
+                                payload = match[1].trim();
+                            } else if (event.content.includes('save_rfp_analysis')) {
+                                const analysisMatch = event.content.match(/'analysis_json':\s*\"\"\"([\s\S]*?)\"\"\"/);
+                                if (analysisMatch) payload = analysisMatch[1].trim();
+                            } else if (event.content.includes('save_solution_draft')) {
+                                const solutionMatch = event.content.match(/'draft_json':\s*'((?:[^'\\]|\\.)*)'/);
+                                if (solutionMatch) {
+                                    payload = solutionMatch[1].replace(/\\'/g, "'"); // Unescape single quotes
+                                    payload = payload.trim();
+                                }
+                            }
+
+                            if (payload) {
+                                const author = event.author.toLowerCase();
+                                
+                                let targetTabId = 'draft';
+                                if (author === 'evidence') targetTabId = 'draft';
+                                else if (author === 'solution') targetTabId = 'draft';
+                                else if (author === 'governance') targetTabId = 'governance';
+                                else if (author === 'editor') targetTabId = 'final';
+                                
+                                let tab = document.getElementById(targetTabId);
+                                if (targetTabId === 'draft') {
+                                    if (author === 'intake') tab = document.getElementById('draft-intake-column');
+                                    else if (author === 'evidence') tab = document.getElementById('draft-evidence-column');
+                                    else if (author === 'solution') tab = document.getElementById('draft-solution-column');
+                                }
+                                if (tab.innerHTML.includes('will appear here')) tab.innerHTML = '';
+                                
+                                const card = document.createElement('div');
+                                card.className = 'a2ui-card';
+                                
+                                const p = document.createElement('p');
+                                p.textContent = `Payload from ${event.author}`;
+                                p.style.fontWeight = '600';
+                                p.style.color = 'var(--accent-color)';
+                                card.appendChild(p);
+                                
+                                // Try to parse JSON and extract text for summary
+                                let cardSummaryText = '';
+                                try {
+                                    const parsedJson = JSON.parse(payload);
+                                    const extractText = (item) => {
+                                        if (!item) return;
+                                        if (item.text) {
+                                            cardSummaryText += item.text + '\n';
+                                        }
+                                        if (item.child) {
+                                            extractText(item.child);
+                                        }
+                                        if (Array.isArray(item.children)) {
+                                            item.children.forEach(extractText);
+                                        }
+                                        if (Array.isArray(item.components)) {
+                                            item.components.forEach(extractText);
+                                        }
+                                    };
+                                    const processComponents = (obj) => {
+                                        if (obj.updateComponents) {
+                                            extractText(obj.updateComponents);
+                                        } else if (obj.createSurface) {
+                                            // skip
+                                        } else {
+                                            extractText(obj);
+                                        }
+                                    };
+                                    if (Array.isArray(parsedJson)) {
+                                        parsedJson.forEach(processComponents);
+                                    } else {
+                                        processComponents(parsedJson);
+                                    }
+                                } catch (e) {
+                                    console.log("Failed to parse A2UI JSON for summary");
+                                }
+                                
+                                if (cardSummaryText) {
+                                    const textDiv = document.createElement('div');
+                                    textDiv.className = 'event-text';
+                                    textDiv.style.whiteSpace = 'pre-line'; // Preserve newlines
+                                    textDiv.textContent = cardSummaryText.length > 200 ? cardSummaryText.substring(0, 200) + '...' : cardSummaryText;
+                                    card.appendChild(textDiv);
+                                } else {
+                                    let cleanText = '';
+                                    try {
+                                        const obj = JSON.parse(payload);
+                                        if (obj.requirements && Array.isArray(obj.requirements)) {
+                                            cleanText = obj.requirements.map(r => `• [${r.requirement_id}] ${r.description}`).join('\n');
+                                        } else if (obj.section_id && obj.content) {
+                                            cleanText = `${obj.section_id.toUpperCase()}:\n${obj.content}`;
+                                        }
+                                    } catch (e) {}
+
+                                    if (cleanText) {
+                                        const textDiv = document.createElement('div');
+                                        textDiv.className = 'event-text';
+                                        textDiv.style.whiteSpace = 'pre-line';
+                                        textDiv.textContent = cleanText.length > 200 ? cleanText.substring(0, 200) + '...' : cleanText;
+                                        card.appendChild(textDiv);
+                                    } else {
+                                        const shortPayload = payload.length > 150 ? payload.substring(0, 150) + '...' : payload;
+                                        const pre = document.createElement('pre');
+                                        pre.className = 'a2ui-payload';
+                                        pre.textContent = shortPayload;
+                                        card.appendChild(pre);
+                                    }
+                                }
+                                
+                                // Add click listener for modal on workspace cards too
+                                card.addEventListener('click', (e) => {
+                                    showModal(`<h3>Payload from ${event.author}</h3><pre class="a2ui-payload">${payload}</pre>`);
+                                    e.stopPropagation(); // Prevent any other handlers
+                                });
+                                
+                                tab.appendChild(card);
+                                switchTab(targetTabId);
+                            }
+                        });
+                        
+                        processedEventCount = events.length;
+                    }
+                })
+                .catch(error => {
+                    console.log("Waiting for events file...");
+                });
+        }
+
+        function fetchState() {
+            fetch('workflow_state.json?t=' + Date.now())
+                .then(response => response.json())
+                .then(state => {
+                    const snapshotContent = document.getElementById('snapshot-content');
+                    snapshotContent.innerHTML = '';
+                    
+                    const card = document.createElement('div');
+                    card.className = 'a2ui-card';
+                    
+                    const p = document.createElement('p');
+                    p.textContent = 'Shared Session State';
+                    p.style.fontWeight = '600';
+                    p.style.color = 'var(--success-color)';
+                    card.appendChild(p);
+                    
+                    const pre = document.createElement('pre');
+                    pre.className = 'a2ui-payload';
+                    pre.textContent = JSON.stringify(state, null, 2);
+                    card.appendChild(pre);
+                    
+                    snapshotContent.appendChild(card);
+
+                    // Render readable response
+                    if (state.final_output && state.final_output.response_draft) {
+                        const readableTab = document.getElementById('readable');
+                        readableTab.innerHTML = '';
+                        
+                        const contentCard = document.createElement('div');
+                        contentCard.className = 'a2ui-card';
+                        contentCard.style.whiteSpace = 'pre-line';
+                        contentCard.style.fontFamily = 'inherit';
+                        contentCard.textContent = state.final_output.response_draft;
+                        
+                        readableTab.appendChild(contentCard);
+
+                        // Update status badge to complete
+                        const statusBadge = document.getElementById('system-status');
+                        statusBadge.textContent = "Workflow Complete";
+                        statusBadge.style.backgroundColor = "rgba(56, 189, 248, 0.2)";
+                        statusBadge.style.color = "#38bdf8";
+                    }
+                })
+                .catch(error => {
+                    console.log("Waiting for state file...");
+                });
+        }
+
+        // Resizable Panes Logic
+        const leftResizer = document.getElementById('resizer-left');
+        const rightResizer = document.getElementById('resizer-right');
+        const leftPane = document.getElementById('left-pane');
+        const rightPane = document.getElementById('right-pane');
+        const mainLayout = document.getElementById('main-layout');
+
+        let currentResizer = null;
+
+        leftResizer.addEventListener('mousedown', (e) => {
+            currentResizer = leftResizer;
+            leftResizer.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+
+        rightResizer.addEventListener('mousedown', (e) => {
+            currentResizer = rightResizer;
+            rightResizer.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            e.preventDefault();
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!currentResizer) return;
+
+            const mainRect = mainLayout.getBoundingClientRect();
+
+            if (currentResizer === leftResizer) {
+                let newWidth = e.clientX - mainRect.left;
+                if (newWidth > 150 && newWidth < 500) {
+                    leftPane.style.width = `${newWidth}px`;
+                }
+            } else if (currentResizer === rightResizer) {
+                let newWidth = mainRect.right - e.clientX;
+                if (newWidth > 200 && newWidth < 600) {
+                    rightPane.style.width = `${newWidth}px`;
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (currentResizer) {
+                currentResizer.classList.remove('resizing');
+                document.body.style.cursor = 'default';
+                currentResizer = null;
+            }
+        });
+
+        setInterval(() => {
+            fetchEvents();
+            fetchState();
+        }, 2000);
+        fetchEvents();
+        fetchState();
+    </script>
+</body>
+</html>

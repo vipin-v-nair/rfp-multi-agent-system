@@ -1,0 +1,9 @@
+{
+  "required_sections": [
+    "executive_summary",
+    "technical_approach",
+    "security",
+    "implementation_plan",
+    "pricing_assumptions"
+  ]
+}

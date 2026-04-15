@@ -1,0 +1,40 @@
+{
+  "project_id": "rfp_001",
+  "rfp_title": "Acme Bank Customer Service Transformation RFP",
+  "issuer": "Acme Bank",
+  "industry": "banking",
+  "region": "north_america",
+  "deadline": "2026-05-01",
+  "sections": [
+    {
+      "section_id": "rfp_sec_001",
+      "title": "Executive Summary",
+      "text": "Provide an executive summary of your proposed approach."
+    },
+    {
+      "section_id": "rfp_sec_002",
+      "title": "Technical Approach",
+      "text": "Describe your AI-powered customer service solution, integrations, and deployment model."
+    },
+    {
+      "section_id": "rfp_sec_003",
+      "title": "Security and Compliance",
+      "text": "Describe encryption, hosting controls, certifications, and compliance posture relevant to regulated banking workloads."
+    },
+    {
+      "section_id": "rfp_sec_004",
+      "title": "Implementation Plan",
+      "text": "Provide a phased rollout plan, timeline, and operating model."
+    },
+    {
+      "section_id": "rfp_sec_005",
+      "title": "Pricing Assumptions",
+      "text": "Provide commercial assumptions and pricing approach."
+    },
+    {
+      "section_id": "rfp_sec_006",
+      "title": "Customer References",
+      "text": "Provide relevant references for similar deployments."
+    }
+  ]
+}

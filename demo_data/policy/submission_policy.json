@@ -1,0 +1,9 @@
+{
+  "required_format": "pdf",
+  "max_pages": 20,
+  "required_fields": [
+    "executive_contact",
+    "security_section",
+    "pricing_assumptions"
+  ]
+}
