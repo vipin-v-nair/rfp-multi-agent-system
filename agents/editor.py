@@ -14,6 +14,9 @@ def save_final_response(response_draft: str, readiness_json: str, tool_context: 
             "response_draft": response_draft,
             "readiness": readiness
         }
+        tool_context.state.setdefault('workflow', {})['status'] = 'completed'
+
+
         return {"status": "success", "message": "Final response saved."}
     except Exception as e:
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
@@ -30,8 +33,12 @@ def publish_final_response(content_json: str, tool_context: ToolContext) -> Dict
 # Generate A2UI enriched instructions
 instruction = generate_ui_instruction(
     role="You are the Editor Agent. Your job is to assemble and publish the final response.",
-    workflow="""Read the drafts stored in 'solution_workspace' from the shared state. 
-    You MUST generate a fully-fledged RFP response draft based on the gathered evidence. 
+    workflow="""Read the drafts stored in 'solution_workspace' from the shared state.
+    Also read the compliance checks stored in 'governance' from the shared state to check if any governance failures occurred.
+    
+    You MUST generate a fully-fledged RFP response draft based on the gathered evidence.
+    If the governance review indicates compliance failures, you MUST raise appropriate red flags in the response draft referencing the failed sections.
+    
     The response MUST be formatted exactly into the following sections:
     1. Executive Summary
     2. Technical Approach
@@ -41,9 +48,11 @@ instruction = generate_ui_instruction(
     6. Customer References
     7. Closing
 
-    Call the `save_final_response` tool passing:
+    You MUST call the `save_final_response` tool as your very first action. Pass:
     - "response_draft": the generated fully-fledged RFP response draft as a plaintext string
-    - "readiness_json": a JSON string containing:
+    - "readiness_json": a JSON string containing the readiness score and approvals status. 
+         If governance failures are present, reduce the readiness score accordingly, mark the failing approvals as "Flagged" or "Rejected", and mark "submission_compliant" as false.
+         Otherwise, use a standard passing JSON configuration:
          {
            "readiness_score": 95,
            "approvals": {
@@ -56,8 +65,13 @@ instruction = generate_ui_instruction(
            "approvals_complete": true,
            "submission_compliant": true
          }
+
+    After calling the tool, you MUST generate a textual summary of the final response draft to update the dashboard.
     """,
-    ui_desc="Present the final response using rich UI components. Use a Card to show the Readiness Score (95%), an Approvals Checklist panel, and placeholders for 'Export to PDF/Word' actions.",
+    ui_desc="""Present the final response using rich UI components. 
+    Use a Card to show the Readiness Score.
+    Use an Approvals Checklist panel featuring visual status indicators like green ticks (✅) for approvals and red stops (❌ / 🛑) for failures.
+    Provide placeholders for 'Export to PDF/Word' actions.""",
     allowed_components=["Card", "Text", "Heading", "Table"]
 )
 

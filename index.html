@@ -248,11 +248,13 @@
             border-radius: 8px;
             font-family: monospace;
             font-size: 0.85rem;
-            overflow-x: auto;
+            overflow: auto;
+            max-height: 750px;
             color: #38bdf8;
             border: 1px solid #334155;
             margin-top: 10px;
         }
+
 
         /* Agent Badges in Timeline */
         .agent-badge {
@@ -264,6 +266,7 @@
             margin-left: 8px;
         }
         .agent-intake { background-color: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+        .agent-documentingestion { background-color: rgba(34, 211, 238, 0.2); color: #22d3ee; }
         .agent-evidence { background-color: rgba(167, 139, 250, 0.2); color: #a78bfa; }
         .agent-solution { background-color: rgba(244, 114, 182, 0.2); color: #f472b6; }
         .agent-governance { background-color: rgba(250, 204, 21, 0.2); color: #facc15; }
@@ -462,6 +465,18 @@
             fetch('workflow_events.json?t=' + Date.now())
                 .then(response => response.json())
                 .then(events => {
+                    if (events.length < processedEventCount) {
+                        // File was truncated (new run started)
+                        processedEventCount = 0;
+                        document.getElementById('timeline-content').innerHTML = '';
+                        document.getElementById('draft-intake-column').innerHTML = '<h3 style="color: var(--accent-color); margin-bottom: 10px;">Intake Extracts</h3>';
+                        document.getElementById('draft-evidence-column').innerHTML = '<h3 style="color: var(--accent-color); margin-bottom: 10px;">Evidence Matches</h3>';
+                        document.getElementById('draft-solution-column').innerHTML = '<h3 style="color: var(--accent-color); margin-bottom: 10px;">Solution Drafts</h3>';
+                        document.getElementById('governance').innerHTML = '<div style="color: var(--muted-text); text-align: center; padding: 20px;">Governance reviews will appear here.</div>';
+                        document.getElementById('final').innerHTML = '<div style="color: var(--muted-text); text-align: center; padding: 20px;">Final response will appear here.</div>';
+                        document.getElementById('readable').innerHTML = '<div style="color: var(--muted-text); text-align: center; padding: 20px;">Readable response will appear here.</div>';
+                    }
+                    
                     if (events.length > processedEventCount) {
                         const statusBadge = document.getElementById('system-status');
                         statusBadge.textContent = "Workflow Running";
@@ -492,6 +507,7 @@
                                 else if (toolName.includes('final_response')) eventTitle = 'Assembled Final Response';
                             } else {
                                 const author = event.author ? event.author.toLowerCase() : 'intake';
+                                if (author === 'documentingestion') eventTitle = 'RFP Ingested';
                                 if (author === 'intake') eventTitle = 'RFP Content Analyzed';
                                 else if (author === 'evidence') eventTitle = 'Evidence Gathered';
                                 else if (author === 'solution') eventTitle = 'Solution Sections Drafted';
@@ -538,9 +554,9 @@
                                 showModal(modalContent);
                             });
                             
-                            timelineContent.appendChild(evDiv);
+                            timelineContent.prepend(evDiv);
                             
-                            document.getElementById('timeline-content').scrollTop = document.getElementById('timeline-content').scrollHeight;
+                            document.getElementById('timeline-content').scrollTop = 0;
                             
                             let payload = null;
                             if (match) {
@@ -554,20 +570,26 @@
                                     payload = solutionMatch[1].replace(/\\'/g, "'"); // Unescape single quotes
                                     payload = payload.trim();
                                 }
+                            } else if (event.content.includes('save_evidence_workspace')) {
+                                const evidenceMatch = event.content.match(/'workspace_json':\s*(?:'|""")([\s\S]*?)(?:'|""")/)
+                                if (evidenceMatch) {
+                                    payload = evidenceMatch[1].replace(/\\'/g, "'"); // Unescape single quotes
+                                    payload = payload.trim();
+                                }
                             }
 
                             if (payload) {
                                 const author = event.author.toLowerCase();
+                                if (author === 'solution') return; // Handled by fetchState directly
                                 
                                 let targetTabId = 'draft';
                                 if (author === 'evidence') targetTabId = 'draft';
-                                else if (author === 'solution') targetTabId = 'draft';
                                 else if (author === 'governance') targetTabId = 'governance';
                                 else if (author === 'editor') targetTabId = 'final';
                                 
                                 let tab = document.getElementById(targetTabId);
                                 if (targetTabId === 'draft') {
-                                    if (author === 'intake') tab = document.getElementById('draft-intake-column');
+                                    if (author === 'intake' || author === 'documentingestion') tab = document.getElementById('draft-intake-column');
                                     else if (author === 'evidence') tab = document.getElementById('draft-evidence-column');
                                     else if (author === 'solution') tab = document.getElementById('draft-solution-column');
                                 }
@@ -585,7 +607,6 @@
                                 // Try to parse JSON and extract text for summary
                                 let cardSummaryText = '';
                                 try {
-                                    const parsedJson = JSON.parse(payload);
                                     const extractText = (item) => {
                                         if (!item) return;
                                         if (item.text) {
@@ -610,20 +631,37 @@
                                             extractText(obj);
                                         }
                                     };
-                                    if (Array.isArray(parsedJson)) {
-                                        parsedJson.forEach(processComponents);
-                                    } else {
-                                        processComponents(parsedJson);
+
+                                    const a2uiRegexAll = /<a2ui-json>([\s\S]*?)<\/a2ui-json>/g;
+                                    const a2uiMatches = [...event.content.matchAll(a2uiRegexAll)];
+                                    
+                                    if (a2uiMatches.length > 0) {
+                                        for (const a2uiMatch of a2uiMatches) {
+                                            const parsedJson = JSON.parse(a2uiMatch[1].trim());
+                                            if (Array.isArray(parsedJson)) {
+                                                parsedJson.forEach(processComponents);
+                                            } else {
+                                                processComponents(parsedJson);
+                                            }
+                                        }
+                                    } else if (payload) {
+                                        const parsedJson = JSON.parse(payload);
+                                        if (Array.isArray(parsedJson)) {
+                                            parsedJson.forEach(processComponents);
+                                        } else {
+                                            processComponents(parsedJson);
+                                        }
                                     }
                                 } catch (e) {
-                                    console.log("Failed to parse A2UI JSON for summary");
+                                    console.log("Failed to parse A2UI JSON for summary", e);
                                 }
                                 
                                 if (cardSummaryText) {
                                     const textDiv = document.createElement('div');
                                     textDiv.className = 'event-text';
                                     textDiv.style.whiteSpace = 'pre-line'; // Preserve newlines
-                                    textDiv.textContent = cardSummaryText.length > 200 ? cardSummaryText.substring(0, 200) + '...' : cardSummaryText;
+                                    const shouldTruncate = (targetTabId === 'draft');
+                                    textDiv.textContent = (shouldTruncate && cardSummaryText.length > 200) ? cardSummaryText.substring(0, 200) + '...' : cardSummaryText;
                                     card.appendChild(textDiv);
                                 } else {
                                     let cleanText = '';
@@ -631,6 +669,20 @@
                                         const obj = JSON.parse(payload);
                                         if (obj.requirements && Array.isArray(obj.requirements)) {
                                             cleanText = obj.requirements.map(r => `• [${r.requirement_id}] ${r.description}`).join('\n');
+                                        } else if (obj.evidence && Array.isArray(obj.evidence)) {
+                                            cleanText = obj.evidence.map(ev => {
+                                                let txt = `Requirement: ${ev.requirement_id}`;
+                                                if (ev.approved_claims && Array.isArray(ev.approved_claims)) {
+                                                    txt += '\n' + ev.approved_claims.map(c => `• ${c.text}`).join('\n');
+                                                }
+                                                return txt;
+                                            }).join('\n\n');
+                                            if (obj.customer_references) cleanText += "\n\nReferences:\n" + obj.customer_references.map(r => `• ${r.display_name}`).join('\n');
+                                            if (obj.certifications) cleanText += "\n\nCertifications:\n" + obj.certifications.map(c => `• ${c.name}`).join('\n');
+                                        } else if (obj.approved_claims && Array.isArray(obj.approved_claims)) {
+                                            cleanText = "Approved Claims:\n" + obj.approved_claims.map(c => `• ${c.text}`).join('\n');
+                                            if (obj.customer_references) cleanText += "\n\nReferences:\n" + obj.customer_references.map(r => `• ${r.display_name}`).join('\n');
+                                            if (obj.certifications) cleanText += "\n\nCertifications:\n" + obj.certifications.map(c => `• ${c.name}`).join('\n');
                                         } else if (obj.section_id && obj.content) {
                                             cleanText = `${obj.section_id.toUpperCase()}:\n${obj.content}`;
                                         }
@@ -640,7 +692,8 @@
                                         const textDiv = document.createElement('div');
                                         textDiv.className = 'event-text';
                                         textDiv.style.whiteSpace = 'pre-line';
-                                        textDiv.textContent = cleanText.length > 200 ? cleanText.substring(0, 200) + '...' : cleanText;
+                                        const shouldTruncate = (targetTabId === 'draft');
+                                        textDiv.textContent = (shouldTruncate && cleanText.length > 200) ? cleanText.substring(0, 200) + '...' : cleanText;
                                         card.appendChild(textDiv);
                                     } else {
                                         const shortPayload = payload.length > 150 ? payload.substring(0, 150) + '...' : payload;
@@ -657,7 +710,11 @@
                                     e.stopPropagation(); // Prevent any other handlers
                                 });
                                 
-                                tab.appendChild(card);
+                                if (tab.children.length > 1) {
+                                    tab.insertBefore(card, tab.children[1]);
+                                } else {
+                                    tab.appendChild(card);
+                                }
                                 switchTab(targetTabId);
                             }
                         });
@@ -675,28 +732,135 @@
                 .then(response => response.json())
                 .then(state => {
                     const snapshotContent = document.getElementById('snapshot-content');
-                    snapshotContent.innerHTML = '';
+                    let pre = snapshotContent.querySelector('.a2ui-payload');
+                    if (!pre) {
+                        snapshotContent.innerHTML = '';
+                        const card = document.createElement('div');
+                        card.className = 'a2ui-card';
+                        const p = document.createElement('p');
+                        p.textContent = 'Shared Session State';
+                        p.style.fontWeight = '600';
+                        p.style.color = 'var(--success-color)';
+                        card.appendChild(p);
+                        pre = document.createElement('pre');
+                        pre.className = 'a2ui-payload';
+                        card.appendChild(pre);
+                        snapshotContent.appendChild(card);
+                    }
                     
-                    const card = document.createElement('div');
-                    card.className = 'a2ui-card';
+                    const stateString = JSON.stringify(state, null, 2);
+                    if (window.lastStateString === stateString) return;
                     
-                    const p = document.createElement('p');
-                    p.textContent = 'Shared Session State';
-                    p.style.fontWeight = '600';
-                    p.style.color = 'var(--success-color)';
-                    card.appendChild(p);
+                    const newLines = stateString.split('\n');
+                    const oldLines = (window.lastStateString || '').split('\n');
+                    pre.innerHTML = '';
+                    let firstNewSpan = null;
+                    newLines.forEach(line => {
+                        const span = document.createElement('span');
+                        if (!oldLines.includes(line) && line.trim().length > 2) {
+                            span.style.backgroundColor = 'rgba(16, 185, 129, 0.25)';
+                            span.style.borderLeft = '3px solid var(--success-color)';
+                            span.style.display = 'block';
+                            span.className = 'new-state-line';
+                            if (!firstNewSpan) firstNewSpan = span;
+                        }
+                        span.textContent = line;
+                        pre.appendChild(span);
+                        pre.appendChild(document.createTextNode('\n'));
+                    });
                     
-                    const pre = document.createElement('pre');
-                    pre.className = 'a2ui-payload';
-                    pre.textContent = JSON.stringify(state, null, 2);
-                    card.appendChild(pre);
-                    
-                    snapshotContent.appendChild(card);
+                    if (firstNewSpan) {
+                        setTimeout(() => {
+                            let offsetTop = 0;
+                            let el = firstNewSpan;
+                            while (el && el !== snapshotContent) {
+                                offsetTop += el.offsetTop;
+                                el = el.offsetParent;
+                            }
+                            snapshotContent.scrollTo({
+                                top: offsetTop - 40,
+                                behavior: 'smooth'
+                            });
+                        }, 100);
+                    }
+
+                    window.lastStateString = stateString;
+
+                    // Render solution cards from state
+                    if (state.solution_workspace) {
+                        const solutionTab = document.getElementById('draft-solution-column');
+                        if (solutionTab) {
+                            const existingTitle = solutionTab.querySelector('h3');
+                            solutionTab.innerHTML = '';
+                            if (existingTitle) {
+                                solutionTab.appendChild(existingTitle);
+                            } else {
+                                const title = document.createElement('h3');
+                                title.style.color = 'var(--accent-color)';
+                                title.style.marginBottom = '10px';
+                                title.textContent = 'Solution Drafts';
+                                solutionTab.appendChild(title);
+                            }
+
+                            const skipKeys = ['outline', 'section_briefs', 'section_drafts', 'assumptions', 'missing_inputs'];
+                            for (const [section_id, content] of Object.entries(state.solution_workspace)) {
+                                if (skipKeys.includes(section_id)) continue;
+                                if (content) {
+
+                                    const card = document.createElement('div');
+                                    card.className = 'a2ui-card';
+                                    
+                                    const p = document.createElement('p');
+                                    p.textContent = section_id.replace('_', ' ').toUpperCase();
+                                    p.style.fontWeight = '600';
+                                    p.style.color = 'var(--accent-color)';
+                                    card.appendChild(p);
+                                    
+                                    const div = document.createElement('div');
+                                    div.style.fontSize = '12px';
+                                    div.style.color = 'var(--text-secondary)';
+                                    div.style.marginTop = '5px';
+                                    div.style.whiteSpace = 'pre-line';
+                                    div.textContent = content;
+                                    card.appendChild(div);
+                                    
+                                    const titleEl = solutionTab.querySelector('h3');
+                                    solutionTab.insertBefore(card, titleEl.nextSibling);
+                                }
+                            }
+                        }
+                    }
 
                     // Render readable response
+
                     if (state.final_output && state.final_output.response_draft) {
                         const readableTab = document.getElementById('readable');
                         readableTab.innerHTML = '';
+                        
+                        // Create toolbar
+                        const toolbar = document.createElement('div');
+                        toolbar.style.display = 'flex';
+                        toolbar.style.gap = '10px';
+                        toolbar.style.justifyContent = 'flex-end';
+                        toolbar.style.marginBottom = '10px';
+                        
+                        const printBtn = document.createElement('button');
+                        printBtn.className = 'tab-btn';
+                        printBtn.textContent = 'Print';
+                        printBtn.onclick = function() {
+                            const printWindow = window.open('', '_blank');
+                            printWindow.document.write('<html><head><title>RFP Response</title>');
+                            printWindow.document.write('<style>body { font-family: sans-serif; white-space: pre-line; padding: 20px; }</style>');
+                            printWindow.document.write('</head><body>');
+                            printWindow.document.write(state.final_output.response_draft);
+                            printWindow.document.write('</body></html>');
+                            printWindow.document.close();
+                            printWindow.print();
+                        };
+                        
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'tab-btn';
+                        editBtn.textContent = 'Edit';
                         
                         const contentCard = document.createElement('div');
                         contentCard.className = 'a2ui-card';
@@ -704,7 +868,21 @@
                         contentCard.style.fontFamily = 'inherit';
                         contentCard.textContent = state.final_output.response_draft;
                         
+                        editBtn.onclick = function() {
+                            const isEditable = contentCard.contentEditable === 'true';
+                            contentCard.contentEditable = !isEditable;
+                            editBtn.textContent = isEditable ? 'Edit' : 'Save';
+                            contentCard.style.border = isEditable ? 'none' : '2px solid var(--accent-color)';
+                            if (isEditable) {
+                                alert('Draft changes applied in UI! (Note: Changes are local to this view and not saved to backend in this demo)');
+                            }
+                        };
+                        
+                        toolbar.appendChild(printBtn);
+                        toolbar.appendChild(editBtn);
+                        readableTab.appendChild(toolbar);
                         readableTab.appendChild(contentCard);
+
 
                         // Update status badge to complete
                         const statusBadge = document.getElementById('system-status');

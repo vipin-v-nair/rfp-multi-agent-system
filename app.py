@@ -10,24 +10,16 @@ from agents.coordinator import coordinator
 async def main():
     session_service = InMemorySessionService()
     app_name = "rfp_system"
+    import uuid
     user_id = "demo_user"
-    session_id = "session_1"
+    session_id = f"session_{uuid.uuid4().hex[:8]}"
     
-    # Read sample RFP from demo_data
     base_dir = os.path.dirname(os.path.abspath(__file__))
-    rfp_path = os.path.join(base_dir, 'demo_data', 'rfp', 'acme_bank_rfp.json')
-    rfp_content = ""
-    try:
-        with open(rfp_path, 'r') as f:
-            rfp_data = json.load(f)
-            rfp_content = f"{rfp_data.get('rfp_title', '')}\n\n"
-            for sec in rfp_data.get('sections', []):
-                rfp_content += f"Section: {sec.get('title')}\n{sec.get('text')}\n\n"
-    except Exception as e:
-        print(f"Error reading demo RFP: {e}")
+    rfp_pdf_path = os.path.join(base_dir, 'demo_data', 'rfp', 'source', 'acme_rfp.pdf')
         
     initial_state = get_initial_state()
-    initial_state['rfp_input'] = rfp_content
+    # Initialize the project state with the PDF file path
+    initial_state['rfp_input']['file_path'] = rfp_pdf_path
     
     # Create session with initial state
     session = await session_service.create_session(
@@ -36,6 +28,13 @@ async def main():
         session_id=session_id,
         state=initial_state
     )
+    
+    # Clear and initialize local state files for dashboard
+    with open('workflow_events.json', 'w') as f:
+        json.dump([], f)
+    with open('workflow_state.json', 'w') as f:
+        json.dump(initial_state, f, indent=2)
+
     
     runner = Runner(
         agent=coordinator,
@@ -48,7 +47,7 @@ async def main():
     
     # Run the flow
     print("Running workflow...")
-    user_message = Content(parts=[Part(text=f"Process the sample RFP:\n\n{rfp_content}")])
+    user_message = Content(parts=[Part(text=f"Process the sample RFP PDF at: {rfp_pdf_path}")])
     
     # Runner.run is usually a generator or async generator.
     # Based on docs, it seems to be a standard generator in some examples,

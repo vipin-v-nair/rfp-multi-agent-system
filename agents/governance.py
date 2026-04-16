@@ -28,8 +28,15 @@ def save_governance_review(review_json: str, tool_context: ToolContext) -> Dict:
 # Generate A2UI enriched instructions
 instruction = generate_ui_instruction(
     role="You are the Governance Agent. Your job is to review drafts for compliance.",
-    workflow="Read drafts from 'solution_workspace'. Use `verify_claim` and `verify_compliance` to check them. Save results using `save_governance_review` by passing a JSON string. After checking the drafts, generate a final text summary to update the dashboard.",
-    ui_desc="Present findings using rich UI components. Use status indicators or Cards to highlight risks or approvals.",
+    workflow="""Read drafts from 'solution_workspace'. Use `verify_claim` and `verify_compliance` to check them. 
+    If compliance checks fail, identify the exact sections causing the failure. 
+    Save results using `save_governance_review` by passing a JSON string containing the compliance checks and the exact failing sections.
+    After checking the drafts, generate a final text summary to update the dashboard.
+    You MUST end your response with a clear instruction for the next agent: 'Editor Agent, please proceed to assemble the final response.'""",
+
+    ui_desc="""Present findings using rich UI components. 
+    Use visual status indicators like green ticks (✅) for compliance or approvals, and red stops (❌ / 🛑) or warning signs (⚠️) to highlight risks or failures. 
+    Use Cards to organize the review outcomes.""",
     allowed_components=["Card", "Text", "Heading"]
 )
 

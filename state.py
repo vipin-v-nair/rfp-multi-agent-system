@@ -5,16 +5,57 @@ def get_initial_state() -> Dict[str, Any]:
     return {
         "project": {},
         "rfp_input": {},
-        "rfp_analysis": {},
-        "evidence_workspace": {},
-        "solution_workspace": {},
-        "governance": {},
+        "rfp_analysis": {
+            "requirements": [],
+            "mandatory_sections": [],
+            "evaluation_criteria": [],
+            "submission_rules": {},
+            "open_questions": [],
+            "risks": []
+
+        },
+        "evidence_workspace": {
+            "search_queries": [],
+            "supporting_snippets": [],
+            "approved_claims": [],
+            "customer_references": [],
+            "certifications": [],
+            "gaps": []
+
+        },
+        "solution_workspace": {
+            "outline": [],
+            "section_briefs": {},
+            "section_drafts": {},
+            "assumptions": [],
+            "missing_inputs": []
+        },
+        "governance": {
+            "findings": [],
+            "compliance_checks_by_section" :[],
+            "blocked_items": [],
+            "approvals_required": [],
+            "approved_items": [],
+            "submission_compliance": {}
+        },
         "workflow": {
             "stage": "intake",
-            "status": "not_started"
+            "status": "not_started",
+            "active_agent": None,
+            "next_action": None,
+            "halt_reason": None
         },
-        "ui_state": {},
-        "final_output": {}
+        "ui_state": {
+
+        },
+        "final_output": {
+            "response_draft": None,
+            "readiness": {},
+            "all_sections_present" :False,
+            "submission_complete" :False,
+            "publish_status": "not_ready",
+            "approvals" : {}
+        }
     }
 
 # Constants for state keys
@@ -29,6 +70,7 @@ KEY_UI_STATE = "ui_state"
 KEY_FINAL_OUTPUT = "final_output"
 
 # Stage constants
+STAGE_DOCUMENT_INGESTION = "document_ingestion"
 STAGE_INTAKE = "intake"
 STAGE_EVIDENCE_GATHERING = "evidence_gathering"
 STAGE_DRAFTING = "drafting"

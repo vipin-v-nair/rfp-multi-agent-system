@@ -21,7 +21,7 @@ def save_rfp_analysis(analysis_json: str, tool_context: ToolContext) -> Dict:
 # Generate A2UI enriched instructions
 instruction = generate_ui_instruction(
     role="You are the Intake Agent. Your job is to parse RFP text and extract requirements.",
-    workflow="""Read the RFP text from state under 'rfp_input'. Extract requirements into a structured JSON output containing:
+    workflow="""Read the structured RFP extracted content from state under 'rfp_input' (specifically 'extracted_pages' and 'section_candidates'). Extract requirements into a structured JSON output containing:
     - requirements: Array of requirement objects with requirement_id, category, description
     - mandatory_sections: Array of mandatory section IDs
     - submission_rules: object containing max_pages, format, must_include_security_section
