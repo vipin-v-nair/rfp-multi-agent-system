@@ -1,4 +1,4 @@
-from fastapi import FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 import uvicorn
 import asyncio
@@ -39,13 +39,11 @@ async def run_workflow_task(feedback: str = None):
             json.dump(session.state, f, indent=2)
         user_message = Content(parts=[Part(text=f"Rework the response based on this feedback: {feedback}")])
     else:
-        # Fresh run: initialize state file
-        from state import get_initial_state
-        initial_state = get_initial_state()
-        initial_state['rfp_input']['file_path'] = rfp_pdf_path
-        with open('workflow_state.json', 'w') as f:
-            json.dump(initial_state, f, indent=2)
-        user_message = Content(parts=[Part(text=f"Process the sample RFP PDF at: {rfp_pdf_path}")])
+        # Fresh run: assume state file is already initialized by the trigger
+        with open('workflow_state.json', 'r') as f:
+            current_state = json.load(f)
+        current_file_path = current_state.get('rfp_input', {}).get('file_path')
+        user_message = Content(parts=[Part(text=f"Process the RFP PDF at: {current_file_path}")])
 
     runner = Runner(
         agent=coordinator,
@@ -156,9 +154,7 @@ async def lifespan(app: FastAPI):
         
     print(f"Session created: {session_id}")
     
-    # Start initial run in background
-    global active_workflow_task
-    active_workflow_task = asyncio.create_task(run_workflow_task())
+    # Auto-start removed. Workflow now triggered via /api/upload endpoint.
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -201,6 +197,52 @@ async def receive_feedback(feedback_data: dict):
             
     active_workflow_task = asyncio.create_task(run_workflow_task(feedback))
     return {"status": "success", "message": "Rework triggered."}
+
+@app.post("/api/upload")
+async def upload_rfp(file: UploadFile = File(...)):
+    global active_workflow_task
+    
+    # Check if workflow is already running
+    try:
+        with open('workflow_state.json', 'r') as f:
+            state = json.load(f)
+        if state.get('workflow', {}).get('status') == 'running':
+            raise HTTPException(status_code=409, detail="A workflow is already in progress.")
+    except FileNotFoundError:
+        pass # If file doesn't exist, it's fine
+        
+    # Ensure uploads directory exists
+    uploads_dir = os.path.join(base_dir, 'demo_data', 'rfp', 'uploads')
+    os.makedirs(uploads_dir, exist_ok=True)
+    
+    file_path = os.path.join(uploads_dir, file.filename)
+    
+    # Save the file
+    with open(file_path, "wb") as buffer:
+        buffer.write(await file.read())
+        
+    print(f"File saved to: {file_path}")
+    
+    # Reset state file to initial state with new file path
+    from state import get_initial_state
+    new_state = get_initial_state()
+    new_state['rfp_input']['file_path'] = file_path
+    
+    with open('workflow_state.json', 'w') as f:
+        json.dump(new_state, f, indent=2)
+        
+    # Reset events file
+    with open('workflow_events.json', 'w') as f:
+        json.dump([], f)
+        
+    # Update session state in service
+    session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
+    session.state = new_state
+    
+    # Trigger workflow in background
+    active_workflow_task = asyncio.create_task(run_workflow_task())
+    
+    return {"status": "success", "message": "File uploaded and workflow triggered."}
 
 if __name__ == "__main__":
     print("Starting FastAPI server on http://localhost:8001")

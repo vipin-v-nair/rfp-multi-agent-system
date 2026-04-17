@@ -113,13 +113,13 @@ instruction = generate_ui_instruction(
             Requirements:
             - Write an opening overview paragraph.
             - Cover each subsection in the brief.
-            - Write at least one paragraph for each subsection in the brief.
-            - Use complete enterprise-style paragraphs.
+            - Write at least TWO paragraphs for each subsection in the brief to ensure depth.
+            - Use detailed, comprehensive enterprise-style paragraphs. Do NOT be concise.
             - Use only the approved claims provided.
             - Do not invent facts, metrics, certifications, or references.
             - Respect all global constraints.
 
-            The section should feel comprehensive, structured, and supportable.
+            The section MUST feel comprehensive, detailed, structured, and supportable.
             
         3. Use save section draft tool to save section draft
 
@@ -131,7 +131,7 @@ instruction = generate_ui_instruction(
     Draft sections for 'executive_summary', 'technical_approach', 'security', 'implementation', 'pricing', and 'references'.
     
 
-    Prefer complete, enterprise-style paragraphs over terse summaries.
+    CRITICAL: Prefer detailed, comprehensive enterprise-style paragraphs over terse summaries. The user wants LONGER, more detailed sections. Elaborate on the points using the approved claims.
     Use all relevant approved claims when they materially strengthen the section.
     After calling the tools, generate a final text summary of the drafted sections to update the dashboard.
     """,

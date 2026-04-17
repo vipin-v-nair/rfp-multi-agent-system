@@ -334,6 +334,69 @@
         ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: var(--muted-text); }
 
+        .upload-container {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 8px 16px;
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        }
+
+        .upload-container input[type="file"] {
+            display: none;
+        }
+
+        .upload-container label {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-color);
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .upload-container label:hover {
+            background: rgba(56, 189, 248, 0.2);
+        }
+
+        .upload-container button {
+            background: var(--accent-color);
+            color: #0f172a;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-container button:hover:not(:disabled) {
+            background: #7dd3fc;
+            box-shadow: 0 0 15px rgba(56, 189, 248, 0.3);
+        }
+
+        .upload-container button:disabled {
+            background: var(--border-color);
+            color: var(--muted-text);
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        #file-name {
+            color: var(--muted-text);
+            font-size: 0.9rem;
+            max-width: 150px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
         @media (max-width: 1024px) {
             main {
                 flex-direction: column;
@@ -347,6 +410,12 @@
 <body>
     <header>
         <h1>RFP Multi-Agent System</h1>
+        <div class="upload-container">
+            <input type="file" id="rfp-upload" accept=".pdf" onchange="updateFileName()">
+            <label for="rfp-upload" id="upload-label">Select RFP PDF</label>
+            <span id="file-name">No file selected</span>
+            <button id="upload-btn" onclick="uploadFile()" disabled>Upload & Start</button>
+        </div>
         <div class="status-badge" id="system-status">Workflow Idle</div>
     </header>
 
@@ -757,6 +826,28 @@
             fetch('workflow_state.json?t=' + Date.now())
                 .then(response => response.json())
                 .then(state => {
+                    // Disable upload UI if running
+                    const uploadBtn = document.getElementById('upload-btn');
+                    const fileLabel = document.getElementById('upload-label');
+                    const fileInput = document.getElementById('rfp-upload');
+                    
+                    if (state.workflow && state.workflow.status === 'running') {
+                        uploadBtn.disabled = true;
+                        fileInput.disabled = true;
+                        fileLabel.style.opacity = '0.5';
+                        fileLabel.style.cursor = 'not-allowed';
+                        fileLabel.textContent = 'Disabled (Running)';
+                    } else {
+                        // Only enable if a file is selected
+                        if (fileInput.files.length > 0) {
+                            uploadBtn.disabled = false;
+                        }
+                        fileInput.disabled = false;
+                        fileLabel.style.opacity = '1';
+                        fileLabel.style.cursor = 'pointer';
+                        fileLabel.textContent = 'Select RFP PDF';
+                    }
+
                     const snapshotContent = document.getElementById('snapshot-content');
                     let pre = snapshotContent.querySelector('.a2ui-payload');
                     if (!pre) {
@@ -948,6 +1039,64 @@
                 .catch(error => {
                     console.log("Waiting for state file...");
                 });
+        }
+
+        function updateFileName() {
+            const input = document.getElementById('rfp-upload');
+            const fileNameSpan = document.getElementById('file-name');
+            const uploadBtn = document.getElementById('upload-btn');
+            
+            if (input.files.length > 0) {
+                fileNameSpan.textContent = input.files[0].name;
+                uploadBtn.disabled = false;
+            } else {
+                fileNameSpan.textContent = "No file selected";
+                uploadBtn.disabled = true;
+            }
+        }
+
+        function uploadFile() {
+            const input = document.getElementById('rfp-upload');
+            const uploadBtn = document.getElementById('upload-btn');
+            const statusBadge = document.getElementById('system-status');
+            
+            if (input.files.length === 0) return;
+            
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+            
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = "Uploading...";
+            statusBadge.textContent = "Uploading File...";
+            
+            fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.status === 409) {
+                    alert("A workflow is already in progress. Please wait or stop it first.");
+                    throw new Error("Workflow in progress");
+                }
+                if (!response.ok) throw new Error("Upload failed");
+                return response.json();
+            })
+            .then(data => {
+                console.log("Upload success:", data);
+                uploadBtn.textContent = "Upload & Start";
+                input.value = '';
+                document.getElementById('file-name').textContent = "No file selected";
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = "Upload & Start";
+                if (error.message !== "Workflow in progress") {
+                    alert("Upload failed. Please try again.");
+                }
+                fetchState();
+            });
         }
 
         // Resizable Panes Logic

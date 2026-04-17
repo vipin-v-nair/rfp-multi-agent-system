@@ -56,6 +56,8 @@ instruction = generate_ui_instruction(
     You MUST generate a fully-fledged RFP response draft based on the gathered evidence.
     If the governance review indicates compliance failures, you MUST raise appropriate red flags in the response draft referencing the failed sections.
     
+    CRITICAL: The user wants LONGER, more detailed sections. Ensure the final response is comprehensive and detailed. If the input drafts are short, elaborate on them to create full, enterprise-style paragraphs. Do NOT truncate or summarize.
+    
     The response MUST be formatted exactly into the following sections:
     1. Executive Summary
     2. Technical Approach
