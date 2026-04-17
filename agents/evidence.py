@@ -16,6 +16,19 @@ def save_evidence_workspace(workspace_json: str, tool_context: ToolContext) -> D
     try:
         workspace = json.loads(workspace_json)
         tool_context.state['evidence_workspace'] = workspace
+        
+        # Persist to file for dashboard
+        from state import state_lock
+        try:
+            with state_lock:
+                with open('workflow_state.json', 'r') as f:
+                    state = json.load(f)
+                state['evidence_workspace'] = workspace
+                with open('workflow_state.json', 'w') as f:
+                    json.dump(state, f, indent=2)
+        except Exception as e:
+            print(f"Evidence Agent: Error writing to workflow_state.json: {e}")
+            
         return {"status": "success", "message": "Evidence workspace saved."}
     except Exception as e:
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
@@ -23,7 +36,17 @@ def save_evidence_workspace(workspace_json: str, tool_context: ToolContext) -> D
 # Generate A2UI enriched instructions
 instruction = generate_ui_instruction(
     role="You are the Evidence Agent. Your job is to gather evidence for RFP requirements.",
-    workflow="""Read requirements from 'rfp_analysis' in state. Search for evidence benchmarks to populate a JSON output containing:
+    workflow="""Read requirements from 'rfp_analysis' in state. 
+    
+    HITL Feedback Handling:
+    If state['workflow']['status'] is 'revision_requested' and 'user_feedback' is present in the state:
+    - Read the 'user_feedback' provided by the user.
+    - If the feedback implies that information is missing or incorrect, use the `search_evidence` tool to search for new evidence.
+    - Update the 'evidence_workspace' with any new evidence found or modifications required.
+    
+    Standard Steps:
+    Search for evidence benchmarks to populate a JSON output containing:
+
     - approved_claims: array of objects with claim_id, text, category
     - customer_references: array of objects with reference_id, display_name, usage
     - certifications: array of objects with name
@@ -37,7 +60,7 @@ instruction = generate_ui_instruction(
 
 evidence_agent = LlmAgent(
     name="Evidence",
-    model="projects/vipin-genai-bb/locations/us-central1/publishers/google/models/gemini-2.5-flash",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
     instruction=instruction,
     tools=[search_evidence, save_evidence_workspace]
 )

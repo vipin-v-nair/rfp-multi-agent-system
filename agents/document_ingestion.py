@@ -108,6 +108,8 @@ instruction = generate_ui_instruction(
     3. Call `detect_section_candidates` to structure the parsed text.
     4. Call `extract_submission_rules` to extract constraints.
     5. Call `extract_evaluation_criteria` to extract evaluation criteria.
+
+    CRITICAL: If the user message contains feedback for rework (e.g., 'Rework the response based on this feedback') and not a request to process a new PDF, do NOT call any tools. Simply state that document ingestion is already complete and pass control to the next agent.
     """,
     ui_desc="Present the extracted pages, constraints, and structured section candidates.",
     allowed_components=["Card", "Text", "Table", "Heading"]
@@ -115,7 +117,7 @@ instruction = generate_ui_instruction(
 
 document_ingestion_agent = LlmAgent(
     name="DocumentIngestion",
-    model="projects/vipin-genai-bb/locations/us-central1/publishers/google/models/gemini-2.5-flash",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
     instruction=instruction,
     tools=[
         register_source_document, 

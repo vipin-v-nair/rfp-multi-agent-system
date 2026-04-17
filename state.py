@@ -83,3 +83,6 @@ STATUS_NOT_STARTED = "not_started"
 STATUS_IN_PROGRESS = "in_progress"
 STATUS_COMPLETED = "completed"
 STATUS_BLOCKED = "blocked"
+
+import threading
+state_lock = threading.Lock()

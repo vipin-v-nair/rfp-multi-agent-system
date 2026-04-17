@@ -14,6 +14,17 @@ def save_rfp_analysis(analysis_json: str, tool_context: ToolContext) -> Dict:
     try:
         analysis = json.loads(analysis_json)
         tool_context.state['rfp_analysis'] = analysis
+        
+        # Persist to file for dashboard
+        try:
+            with open('workflow_state.json', 'r') as f:
+                state = json.load(f)
+            state['rfp_analysis'] = analysis
+            with open('workflow_state.json', 'w') as f:
+                json.dump(state, f, indent=2)
+        except Exception as e:
+            print(f"Intake Agent: Error writing to workflow_state.json: {e}")
+            
         return {"status": "success", "message": "RFP analysis saved."}
     except Exception as e:
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
@@ -29,6 +40,8 @@ instruction = generate_ui_instruction(
     - risks: Array of risk objects with risk_id, description
 
     Save this structure using the `save_rfp_analysis` tool by passing a JSON string.
+
+    CRITICAL: If the user message contains feedback for rework and not a request to analyze new content, do NOT call any tools. Simply state that intake analysis is already complete and pass control to the next agent.
     """,
     ui_desc="Present the extracted requirements and rules using rich UI components like Cards and Tables.",
     allowed_components=["Card", "Text", "Table", "Heading"]
@@ -36,7 +49,7 @@ instruction = generate_ui_instruction(
 
 intake_agent = LlmAgent(
     name="Intake",
-    model="projects/vipin-genai-bb/locations/us-central1/publishers/google/models/gemini-2.5-flash",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
     instruction=instruction,
     tools=[save_rfp_analysis]
 )

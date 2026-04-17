@@ -42,7 +42,7 @@ instruction = generate_ui_instruction(
 
 governance_agent = LlmAgent(
     name="Governance",
-    model="projects/vipin-genai-bb/locations/us-central1/publishers/google/models/gemini-2.5-flash",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
     instruction=instruction,
     tools=[verify_claim, verify_compliance, save_governance_review]
 )

@@ -64,6 +64,24 @@ def save_solution_draft(draft_json: str, tool_context: ToolContext) -> Dict:
         workspace = tool_context.state.get('solution_workspace', {})
         workspace[section_id] = content
         tool_context.state['solution_workspace'] = workspace
+        
+        # Persist to file for dashboard
+        from state import state_lock
+        try:
+            with state_lock:
+                with open('workflow_state.json', 'r') as f:
+                    state = json.load(f)
+                
+                if 'solution_workspace' not in state:
+                    state['solution_workspace'] = {}
+                    
+                state['solution_workspace'][section_id] = content
+                
+                with open('workflow_state.json', 'w') as f:
+                    json.dump(state, f, indent=2)
+        except Exception as e:
+            print(f"Solution Agent: Error writing to workflow_state.json: {e}")
+            
         return {
             "status": "success", 
             "message": f"Draft {section_id} saved to state.", 
@@ -76,10 +94,20 @@ def save_solution_draft(draft_json: str, tool_context: ToolContext) -> Dict:
 instruction = generate_ui_instruction(
     role="You are the Solution Agent. Your job is to draft response sections based on evidence.",
     workflow="""Read evidence from 'evidence_workspace' in state. 
+    
+    HITL Feedback Handling:
+    If state['workflow']['status'] is 'revision_requested' and 'user_feedback' is present in the state:
+    - Read the 'user_feedback' provided by the user.
+    - Identify which sections need changes based on the feedback.
+    - Revise the existing drafts in 'solution_workspace' to address the feedback.
+    - Proceed to save the revised drafts using the `save_solution_draft` tool.
+    - You do NOT need to redraft all sections, only those affected by the feedback.
+
+    Standard Drafting Steps:
     Draft response sections using the evidence using the following steps: 
 
         1. Use build_section_brief tool to build section brief : Create a structured brief for the section with objective, requirements, subsections, and constraints.
-        2. Use draft from section brief : 
+        2. Generate the section draft: 
             Draft the section as a proposal-quality response using the provided section brief and approved claims.
 
             Requirements:
@@ -115,7 +143,7 @@ instruction = generate_ui_instruction(
 
 solution_agent = LlmAgent(
     name="Solution",
-    model="projects/vipin-genai-bb/locations/us-central1/publishers/google/models/gemini-2.5-flash",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
     instruction=instruction,
     tools=[build_section_brief, save_solution_draft]
 )

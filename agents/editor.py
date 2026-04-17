@@ -14,8 +14,25 @@ def save_final_response(response_draft: str, readiness_json: str, tool_context: 
             "response_draft": response_draft,
             "readiness": readiness
         }
-        tool_context.state.setdefault('workflow', {})['status'] = 'completed'
+        tool_context.state.setdefault('workflow', {})['status'] = 'pending_review'
 
+        # Persist to file for dashboard
+        from state import state_lock
+        try:
+            with state_lock:
+                with open('workflow_state.json', 'r') as f:
+                    state = json.load(f)
+                
+                state['final_output'] = {
+                    "response_draft": response_draft,
+                    "readiness": readiness
+                }
+                state.setdefault('workflow', {})['status'] = 'pending_review'
+                
+                with open('workflow_state.json', 'w') as f:
+                    json.dump(state, f, indent=2)
+        except Exception as e:
+            print(f"Editor Agent: Error writing to workflow_state.json: {e}")
 
         return {"status": "success", "message": "Final response saved."}
     except Exception as e:
@@ -77,7 +94,7 @@ instruction = generate_ui_instruction(
 
 editor_agent = LlmAgent(
     name="Editor",
-    model="projects/vipin-genai-bb/locations/us-central1/publishers/google/models/gemini-2.5-flash",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
     instruction=instruction,
     tools=[save_final_response, publish_final_response]
 )
