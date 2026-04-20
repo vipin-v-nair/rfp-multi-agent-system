@@ -592,7 +592,7 @@
                             
                             // Extract action or summarize action based on content
                             let eventTitle = `${event.author} Action`;
-                            const toolMatch = event.content.match(/name='([^']*)'/);
+                            const toolMatch = event.content.match(/Called tool ([^\s]+)/);
                             if (toolMatch) {
                                 const toolName = toolMatch[1];
                                 if (toolName.includes('analysis')) eventTitle = 'Extracted Requirements';
@@ -629,7 +629,13 @@
                             } else if (toolMatch) {
                                 overviewText = `Called ${toolMatch[1]} to update shared state.`;
                             } else {
-                                overviewText = event.content.length > 100 ? event.content.substring(0, 100) + '...' : event.content;
+                                const partsMatch = event.content.match(/'text':\s*["']([\s\S]*?)["']/);
+                                if (partsMatch) {
+                                    let extracted = partsMatch[1].replace(/\\n/g, ' ').replace(/\\'/g, "'").replace(/\\"/g, '"');
+                                    overviewText = extracted.length > 100 ? extracted.substring(0, 100) + '...' : extracted;
+                                } else {
+                                    overviewText = event.content.length > 100 ? event.content.substring(0, 100) + '...' : event.content;
+                                }
                             }
                             textDiv.textContent = overviewText;
                             
@@ -656,20 +662,19 @@
                             let payload = null;
                             if (match) {
                                 payload = match[1].trim();
-                            } else if (event.content.includes('save_rfp_analysis')) {
-                                const analysisMatch = event.content.match(/'analysis_json':\s*\"\"\"([\s\S]*?)\"\"\"/);
-                                if (analysisMatch) payload = analysisMatch[1].trim();
-                            } else if (event.content.includes('save_solution_draft')) {
-                                const solutionMatch = event.content.match(/'draft_json':\s*'((?:[^'\\]|\\.)*)'/);
-                                if (solutionMatch) {
-                                    payload = solutionMatch[1].replace(/\\'/g, "'"); // Unescape single quotes
-                                    payload = payload.trim();
-                                }
-                            } else if (event.content.includes('save_evidence_workspace')) {
-                                const evidenceMatch = event.content.match(/'workspace_json':\s*(?:'|""")([\s\S]*?)(?:'|""")/)
-                                if (evidenceMatch) {
-                                    payload = evidenceMatch[1].replace(/\\'/g, "'"); // Unescape single quotes
-                                    payload = payload.trim();
+                            } else if (event.content.includes('with args: ')) {
+                                const argsMatch = event.content.match(/with args: (\{.*\})/);
+                                if (argsMatch) {
+                                    try {
+                                        const args = JSON.parse(argsMatch[1]);
+                                        if (args.analysis_json) payload = args.analysis_json;
+                                        else if (args.draft_json) payload = args.draft_json;
+                                        else if (args.workspace_json) payload = args.workspace_json;
+                                        else if (args.review_json) payload = args.review_json;
+                                        else if (args.response_json) payload = args.response_json;
+                                    } catch (e) {
+                                        console.error("Failed to parse tool args", e);
+                                    }
                                 }
                             }
 
@@ -791,11 +796,18 @@
                                         textDiv.textContent = (shouldTruncate && cleanText.length > 200) ? cleanText.substring(0, 200) + '...' : cleanText;
                                         card.appendChild(textDiv);
                                     } else {
-                                        const shortPayload = payload.length > 150 ? payload.substring(0, 150) + '...' : payload;
-                                        const pre = document.createElement('pre');
-                                        pre.className = 'a2ui-payload';
-                                        pre.textContent = shortPayload;
-                                        card.appendChild(pre);
+                                        // Try to extract text from Python-style Content string: {'parts': [{'text': '...'}]}
+                                        const partsMatch = payload.match(/'text':\s*["']([\s\S]*?)["']/);
+                                        let cleanPayload = payload;
+                                        if (partsMatch) {
+                                            cleanPayload = partsMatch[1].replace(/\\n/g, '\n').replace(/\\'/g, "'").replace(/\\"/g, '"');
+                                        }
+                                        const shortPayload = cleanPayload.length > 300 ? cleanPayload.substring(0, 300) + '...' : cleanPayload;
+                                        const div = document.createElement('div');
+                                        div.className = 'event-text';
+                                        div.style.whiteSpace = 'pre-line';
+                                        div.textContent = shortPayload;
+                                        card.appendChild(div);
                                     }
                                 }
                                 

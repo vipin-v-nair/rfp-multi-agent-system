@@ -96,7 +96,7 @@ instruction = generate_ui_instruction(
 
 editor_agent = LlmAgent(
     name="Editor",
-    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3-flash-preview",
     instruction=instruction,
     tools=[save_final_response, publish_final_response]
 )

@@ -60,7 +60,7 @@ instruction = generate_ui_instruction(
 
 evidence_agent = LlmAgent(
     name="Evidence",
-    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3-flash-preview",
     instruction=instruction,
     tools=[search_evidence, save_evidence_workspace]
 )

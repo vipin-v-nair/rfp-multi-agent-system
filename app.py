@@ -5,156 +5,146 @@ import asyncio
 import os
 import json
 import uuid
-
-# Fix SSL cert issue for Vertex AI calls
-os.environ['SSL_CERT_FILE'] = os.path.abspath("./.venv/lib/python3.13/site-packages/certifi/cacert.pem")
+import requests
 from contextlib import asynccontextmanager
-from google.adk.sessions import InMemorySessionService
-from google.adk.runners import Runner
-from google.genai.types import Content, Part
-from state import get_initial_state
-from agents.coordinator import coordinator
+from state import FirestoreStateManager
 
-session_service = InMemorySessionService()
+# App Config
 app_name = "rfp_system"
 user_id = "demo_user"
-session_id = f"session_{uuid.uuid4().hex[:8]}"
+
+# The endpoint for the ADK agent (local adk api_server or Agent Engine)
+AGENT_ENDPOINT = os.getenv("AGENT_ENDPOINT", "http://localhost:8080")
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-rfp_pdf_path = os.path.join(base_dir, 'demo_data', 'rfp', 'source', 'acme_rfp.pdf')
 
-initial_state = get_initial_state()
-initial_state['rfp_input']['file_path'] = rfp_pdf_path
+# Initialize a global session and state manager
+session_id = f"session_{uuid.uuid4().hex[:8]}"
+state_manager = FirestoreStateManager(session_id)
 
-async def run_workflow_task(feedback: str = None):
-    print("Running workflow...")
-    session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
-    
-    if feedback:
-        # Update state with feedback
-        session.state.setdefault('workflow', {})['status'] = 'revision_requested'
-        session.state['user_feedback'] = feedback
-        # Persist state to file immediately
-        with open('workflow_state.json', 'w') as f:
-            json.dump(session.state, f, indent=2)
-        user_message = Content(parts=[Part(text=f"Rework the response based on this feedback: {feedback}")])
-    else:
-        # Fresh run: assume state file is already initialized by the trigger
-        with open('workflow_state.json', 'r') as f:
-            current_state = json.load(f)
-        current_file_path = current_state.get('rfp_input', {}).get('file_path')
-        user_message = Content(parts=[Part(text=f"Process the RFP PDF at: {current_file_path}")])
-
-    runner = Runner(
-        agent=coordinator,
-        app_name=app_name,
-        session_service=session_service
-    )
-    
-    # Reset event file for new run if not a feedback loop
-    if not feedback:
-        with open('workflow_events.json', 'w') as f:
-            json.dump([], f)
-            
-    def run_workflow_sync_impl():
-        # Set workflow status to running
-        try:
-            with open('workflow_state.json', 'r') as f:
-                state = json.load(f)
-            state.setdefault('workflow', {})['status'] = 'running'
-            with open('workflow_state.json', 'w') as f:
-                json.dump(state, f, indent=2)
-        except Exception as e:
-            print(f"Error setting workflow status to running: {e}")
-
-        for event in runner.run(user_id=user_id, session_id=session_id, new_message=user_message):
-            print(f"Event from {event.author}: {event.content}")
-            
-            # Read the most recent state from file to include tool updates
-            from state import state_lock
-            try:
-                with state_lock:
-                    try:
-                        with open('workflow_state.json', 'r') as f:
-                            current_state = json.load(f)
-                    except Exception as e:
-                        print(f"Error reading workflow_state.json: {e}")
-                        current_state = {}
-                    
-                    # Update active agent and stage based on event author
-                    current_state.setdefault('workflow', {})['active_agent'] = event.author
-                    if event.author == "DocumentIngestion":
-                        current_state['workflow']['stage'] = 'intake'
-                    elif event.author == "SolutionAgent":
-                        current_state['workflow']['stage'] = 'drafting'
-                    elif event.author == "Governance":
-                        current_state['workflow']['stage'] = 'review'
-                    elif event.author == "Editor":
-                        current_state['workflow']['stage'] = 'finalization'
-                        
-                    # Merge manual updates if missing
-                    if feedback:
-                        if 'user_feedback' not in current_state:
-                            current_state['user_feedback'] = feedback
-                        if current_state.get('workflow', {}).get('status') != 'revision_requested':
-                            current_state.setdefault('workflow', {})['status'] = 'revision_requested'
-                            
-                    with open('workflow_state.json', 'w') as f:
-                        json.dump(current_state, f, indent=2)
-            except Exception as e:
-                print(f"Error in state update block: {e}")
-                
-            # Append event to events file
-            try:
-                with open('workflow_events.json', 'r+') as f:
-                    events = json.load(f)
-                    events.append({
-                        "author": event.author,
-                        "content": event.content if isinstance(event.content, str) else str(event.content)
-                    })
-                    f.seek(0)
-                    json.dump(events, f, indent=2)
-            except Exception as e:
-                print(f"Error updating events: {e}")
-
+def run_workflow_sync_impl(feedback: str = None):
+    """Synchronous function to run the workflow by calling the remote agent via HTTP."""
     try:
-        await asyncio.to_thread(run_workflow_sync_impl)
+        current_state = state_manager.get_state()
+        
+        if feedback:
+            current_state.setdefault('workflow', {})['status'] = 'revision_requested'
+            current_state['user_feedback'] = feedback
+            state_manager.update_state(current_state)
+            user_message_text = f"Rework the response based on this feedback: {feedback}"
+        else:
+            current_state.setdefault('workflow', {})['status'] = 'running'
+            state_manager.update_state(current_state)
+            current_file_path = current_state.get('rfp_input', {}).get('file_path')
+            user_message_text = f"Process the RFP PDF at: {current_file_path}"
+
+        payload = {
+            "app_name": app_name,
+            "user_id": user_id,
+            "session_id": session_id,
+            "new_message": {
+                "parts": [{"text": user_message_text}]
+            },
+            "streaming": True
+        }
+
+        print(f"Calling ADK Agent at {AGENT_ENDPOINT}/run_sse")
+        response = requests.post(
+            f"{AGENT_ENDPOINT}/run_sse",
+            json=payload,
+            stream=True
+        )
+        
+        if response.status_code != 200:
+            raise Exception(f"Agent returned error: {response.text}")
+
+        # Process the Server-Sent Events stream
+        for line in response.iter_lines():
+            if line:
+                decoded_line = line.decode('utf-8')
+                if decoded_line.startswith("data: "):
+                    data_str = decoded_line[len("data: "):]
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        event_data = json.loads(data_str)
+                        # ADK events typically have an 'author' and 'content'
+                        author = event_data.get("author")
+                        content = event_data.get("content")
+                        
+                        if author and content:
+                            # Extract meaningful text from ADK Content dictionary
+                            content_str = ""
+                            if isinstance(content, dict) and 'parts' in content:
+                                parts = []
+                                for p in content.get('parts', []):
+                                    if 'text' in p:
+                                        parts.append(p['text'])
+                                    elif 'function_call' in p:
+                                        func_name = p['function_call'].get('name')
+                                        func_args = p['function_call'].get('args', {})
+                                        parts.append(f"Called tool {func_name} with args: {json.dumps(func_args)}")
+                                content_str = "".join(parts)
+                            elif isinstance(content, str):
+                                content_str = content
+                            else:
+                                content_str = str(content)
+                                
+                            print(f"Event from {author}: {content_str}")
+                            
+                            # Fetch the latest full state from the ADK Agent Server
+                            session_resp = requests.get(f"{AGENT_ENDPOINT}/apps/{app_name}/users/{user_id}/sessions/{session_id}")
+                            if session_resp.status_code == 200:
+                                session_data = session_resp.json()
+                                adk_state = session_data.get("state", {})
+                                
+                                # Merge our workflow updates (stage, active agent) into the ADK state
+                                adk_state.setdefault('workflow', {})['active_agent'] = author
+                                if author == "DocumentIngestion":
+                                    adk_state['workflow']['stage'] = 'intake'
+                                elif author == "SolutionAgent":
+                                    adk_state['workflow']['stage'] = 'drafting'
+                                elif author == "Governance":
+                                    adk_state['workflow']['stage'] = 'review'
+                                elif author == "Editor":
+                                    adk_state['workflow']['stage'] = 'finalization'
+                                    
+                                state_manager.update_state(adk_state)
+                            
+                            # Append event with CLEAN string
+                            state_manager.append_event({
+                                "author": author,
+                                "content": content_str
+                            })
+                            
+                    except json.JSONDecodeError:
+                        pass
+
+        # Update status to completed when the stream ends successfully
+        print("Workflow stream completed successfully.")
+        final_state = state_manager.get_state()
+        final_state.setdefault('workflow', {})['status'] = 'completed'
+        final_state['workflow']['stage'] = 'publish'
+        state_manager.update_state(final_state)
+
     except Exception as e:
         print(f"CRITICAL ERROR in workflow task: {e}")
-        # Update state to error
-        try:
-            with open('workflow_state.json', 'r') as f:
-                state = json.load(f)
-            state.setdefault('workflow', {})['status'] = 'error'
-            state['workflow']['halt_reason'] = str(e)
-            with open('workflow_state.json', 'w') as f:
-                json.dump(state, f, indent=2)
-        except Exception as se:
-            print(f"Failed to update state file with error: {se}")
+        current_state = state_manager.get_state()
+        current_state.setdefault('workflow', {})['status'] = 'error'
+        current_state.setdefault('workflow', {})['halt_reason'] = str(e)
+        state_manager.update_state(current_state)
+
+async def run_workflow_task(feedback: str = None):
+    print("Running workflow task...")
+    await asyncio.to_thread(run_workflow_sync_impl, feedback)
 
 active_workflow_task = None
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize session
-    await session_service.create_session(
-        app_name=app_name,
-        user_id=user_id,
-        session_id=session_id,
-        state=initial_state
-    )
-    
-    # Reset state file
-    with open('workflow_state.json', 'w') as f:
-        json.dump(initial_state, f, indent=2)
-        
-    # Reset events file
-    with open('workflow_events.json', 'w') as f:
-        json.dump([], f)
-        
+    # Initialize session in Firestore
+    state_manager.init_state()
     print(f"Session created: {session_id}")
-    
-    # Auto-start removed. Workflow now triggered via /api/upload endpoint.
     yield
 
 app = FastAPI(lifespan=lifespan)
@@ -166,19 +156,17 @@ async def read_index():
 @app.get("/workflow_state.json")
 async def get_state():
     try:
-        with open("workflow_state.json", "r") as f:
-            return json.load(f)
+        return state_manager.get_state()
     except Exception as e:
-        print(f"Error reading workflow_state.json: {e}")
+        print(f"Error reading state: {e}")
         return {}
 
 @app.get("/workflow_events.json")
 async def get_events():
     try:
-        with open("workflow_events.json", "r") as f:
-            return json.load(f)
+        return state_manager.get_events()
     except Exception as e:
-        print(f"Error reading workflow_events.json: {e}")
+        print(f"Error reading events: {e}")
         return []
 
 @app.post("/api/feedback")
@@ -202,14 +190,12 @@ async def receive_feedback(feedback_data: dict):
 async def upload_rfp(file: UploadFile = File(...)):
     global active_workflow_task
     
-    # Check if workflow is already running
-    try:
-        with open('workflow_state.json', 'r') as f:
-            state = json.load(f)
-        if state.get('workflow', {}).get('status') == 'running':
-            raise HTTPException(status_code=409, detail="A workflow is already in progress.")
-    except FileNotFoundError:
-        pass # If file doesn't exist, it's fine
+    global session_id
+    global state_manager
+    
+    current_state = state_manager.get_state()
+    if current_state.get('workflow', {}).get('status') == 'running':
+        raise HTTPException(status_code=409, detail="A workflow is already in progress.")
         
     # Ensure uploads directory exists
     uploads_dir = os.path.join(base_dir, 'demo_data', 'rfp', 'uploads')
@@ -223,21 +209,17 @@ async def upload_rfp(file: UploadFile = File(...)):
         
     print(f"File saved to: {file_path}")
     
-    # Reset state file to initial state with new file path
+    # Regenerate session ID for a completely fresh run on the ADK Server
+    session_id = f"session_{uuid.uuid4().hex[:8]}"
+    state_manager = FirestoreStateManager(session_id)
+    
+    # Reset state and set new file path
     from state import get_initial_state
     new_state = get_initial_state()
     new_state['rfp_input']['file_path'] = file_path
     
-    with open('workflow_state.json', 'w') as f:
-        json.dump(new_state, f, indent=2)
-        
-    # Reset events file
-    with open('workflow_events.json', 'w') as f:
-        json.dump([], f)
-        
-    # Update session state in service
-    session = await session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id)
-    session.state = new_state
+    state_manager.init_state()
+    state_manager.update_state(new_state)
     
     # Trigger workflow in background
     active_workflow_task = asyncio.create_task(run_workflow_task())
@@ -247,4 +229,3 @@ async def upload_rfp(file: UploadFile = File(...)):
 if __name__ == "__main__":
     print("Starting FastAPI server on http://localhost:8001")
     uvicorn.run(app, host="0.0.0.0", port=8001)
-

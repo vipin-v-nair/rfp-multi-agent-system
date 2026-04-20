@@ -13,14 +13,15 @@ def validate_claim(claim: str) -> Dict:
     try:
         with open(fixtures_path, 'r') as f:
             data = json.load(f)
-            for item in data:
-                if item['text'].lower() in claim.lower() or claim.lower() in item['text'].lower():
-                    return {
-                        "status": "success",
-                        "claim": claim,
-                        "is_valid": True,
-                        "reason": f"Matches allowed claim: {item['text']}"
-                    }
+            for category_claims in data.values():
+                for item in category_claims:
+                    if item.get('text', '').lower() in claim.lower() or claim.lower() in item.get('text', '').lower():
+                        return {
+                            "status": "success",
+                            "claim": claim,
+                            "is_valid": True,
+                            "reason": f"Matches allowed claim: {item.get('text', '')}"
+                        }
     except Exception as e:
         print(f"Error reading policy fixtures: {e}")
         

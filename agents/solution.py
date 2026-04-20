@@ -143,7 +143,7 @@ instruction = generate_ui_instruction(
 
 solution_agent = LlmAgent(
     name="Solution",
-    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3-flash-preview",
     instruction=instruction,
     tools=[build_section_brief, save_solution_draft]
 )

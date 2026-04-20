@@ -117,7 +117,7 @@ instruction = generate_ui_instruction(
 
 document_ingestion_agent = LlmAgent(
     name="DocumentIngestion",
-    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3-flash-preview",
     instruction=instruction,
     tools=[
         register_source_document, 

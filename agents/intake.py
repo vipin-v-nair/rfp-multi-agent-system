@@ -49,7 +49,7 @@ instruction = generate_ui_instruction(
 
 intake_agent = LlmAgent(
     name="Intake",
-    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3.1-pro-preview",
+    model="projects/vipin-genai-bb/locations/global/publishers/google/models/gemini-3-flash-preview",
     instruction=instruction,
     tools=[save_rfp_analysis]
 )
