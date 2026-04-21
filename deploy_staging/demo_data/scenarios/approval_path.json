@@ -1,0 +1,9 @@
+{
+  "scenario_id": "approval_path",
+  "description": "Customer reference requires sales approval for anonymized phrasing.",
+  "draft_injection": {
+    "section_id": "technical_approach",
+    "reference_phrase": "Used by a leading North American bank."
+  },
+  "expected_approval_trigger": "reference_exception"
+}

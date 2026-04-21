@@ -19,7 +19,7 @@ AGENT_ENDPOINT = os.getenv("AGENT_ENDPOINT", "http://localhost:8080")
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 # Initialize a global session and state manager
-session_id = f"session_{uuid.uuid4().hex[:8]}"
+session_id = f"session-{uuid.uuid4().hex[:8]}"
 state_manager = FirestoreStateManager(session_id)
 
 def run_workflow_sync_impl(feedback: str = None):
@@ -38,87 +38,165 @@ def run_workflow_sync_impl(feedback: str = None):
             current_file_path = current_state.get('rfp_input', {}).get('file_path')
             user_message_text = f"Process the RFP PDF at: {current_file_path}"
 
+        AGENT_ENGINE_ID = os.getenv("AGENT_ENGINE_ID")
+        
+        # Agent Engine expects 'message' and NO 'app_name'
+        message_key = "message" if AGENT_ENGINE_ID else "new_message"
+        
         payload = {
-            "app_name": app_name,
             "user_id": user_id,
             "session_id": session_id,
-            "new_message": {
+            message_key: {
+                "role": "user",
                 "parts": [{"text": user_message_text}]
-            },
-            "streaming": True
+            }
         }
+        
+        if not AGENT_ENGINE_ID:
+            payload["app_name"] = app_name
+            payload["streaming"] = True
 
-        print(f"Calling ADK Agent at {AGENT_ENDPOINT}/run_sse")
-        response = requests.post(
-            f"{AGENT_ENDPOINT}/run_sse",
-            json=payload,
-            stream=True
-        )
+        if AGENT_ENGINE_ID:
+            import google.auth
+            import google.auth.transport.requests
+            credentials, project = google.auth.default()
+            auth_req = google.auth.transport.requests.Request()
+            credentials.refresh(auth_req)
+            token = credentials.token
+            
+            location = AGENT_ENGINE_ID.split("/")[3]
+            url = f"https://{location}-aiplatform.googleapis.com/v1beta1/{AGENT_ENGINE_ID}:streamQuery"
+            
+            print(f"Calling Vertex AI Agent Engine at {url}")
+            response = requests.post(
+                url,
+                json={"input": payload},
+                headers={"Authorization": f"Bearer {token}"},
+                stream=True
+            )
+        else:
+            print(f"Calling ADK Agent at {AGENT_ENDPOINT}/run_sse")
+            response = requests.post(
+                f"{AGENT_ENDPOINT}/run_sse",
+                json=payload,
+                stream=True
+            )
         
         if response.status_code != 200:
             raise Exception(f"Agent returned error: {response.text}")
 
-        # Process the Server-Sent Events stream
+        # Process the stream (Handles both SSE and Vertex AI JSON Arrays)
+        buffer = ""
         for line in response.iter_lines():
             if line:
-                decoded_line = line.decode('utf-8')
+                decoded_line = line.decode('utf-8').strip()
+                
+                # Handle local ADK server SSE format
                 if decoded_line.startswith("data: "):
                     data_str = decoded_line[len("data: "):]
                     if data_str == "[DONE]":
                         break
                     try:
                         event_data = json.loads(data_str)
-                        # ADK events typically have an 'author' and 'content'
-                        author = event_data.get("author")
-                        content = event_data.get("content")
-                        
-                        if author and content:
-                            # Extract meaningful text from ADK Content dictionary
-                            content_str = ""
-                            if isinstance(content, dict) and 'parts' in content:
-                                parts = []
-                                for p in content.get('parts', []):
-                                    if 'text' in p:
-                                        parts.append(p['text'])
-                                    elif 'function_call' in p:
-                                        func_name = p['function_call'].get('name')
-                                        func_args = p['function_call'].get('args', {})
-                                        parts.append(f"Called tool {func_name} with args: {json.dumps(func_args)}")
-                                content_str = "".join(parts)
-                            elif isinstance(content, str):
-                                content_str = content
-                            else:
-                                content_str = str(content)
-                                
-                            print(f"Event from {author}: {content_str}")
-                            
-                            # Fetch the latest full state from the ADK Agent Server
-                            session_resp = requests.get(f"{AGENT_ENDPOINT}/apps/{app_name}/users/{user_id}/sessions/{session_id}")
-                            if session_resp.status_code == 200:
-                                session_data = session_resp.json()
-                                adk_state = session_data.get("state", {})
-                                
-                                # Merge our workflow updates (stage, active agent) into the ADK state
-                                adk_state.setdefault('workflow', {})['active_agent'] = author
-                                if author == "DocumentIngestion":
-                                    adk_state['workflow']['stage'] = 'intake'
-                                elif author == "SolutionAgent":
-                                    adk_state['workflow']['stage'] = 'drafting'
-                                elif author == "Governance":
-                                    adk_state['workflow']['stage'] = 'review'
-                                elif author == "Editor":
-                                    adk_state['workflow']['stage'] = 'finalization'
-                                    
-                                state_manager.update_state(adk_state)
-                            
-                            # Append event with CLEAN string
-                            state_manager.append_event({
-                                "author": author,
-                                "content": content_str
-                            })
-                            
                     except json.JSONDecodeError:
-                        pass
+                        continue
+                
+                # Handle Vertex AI JSON Array stream
+                else:
+                    # Accumulate lines since JSON might be split across lines
+                    buffer += decoded_line
+                    
+                    # We look for complete JSON objects in the buffer.
+                    # Since Vertex AI streams `{ "result": ... }`, we can try to extract the objects.
+                    # A simple heuristic: if the buffer contains a complete dict, try parsing it.
+                    if buffer == "[" or buffer == "," or buffer == "]":
+                        buffer = ""
+                        continue
+                        
+                    try:
+                        # It might have a trailing comma
+                        clean_buf = buffer.rstrip(',')
+                        parsed = json.loads(clean_buf)
+                        
+                        # Vertex AI wraps the yielded object in {"result": ...}
+                        if "result" in parsed:
+                            event_data = parsed["result"]
+                        else:
+                            event_data = parsed
+                            
+                        buffer = "" # Reset buffer after successful parse
+                    except json.JSONDecodeError:
+                        # Incomplete JSON object, keep accumulating
+                        continue
+
+                # Now we have event_data
+                author = event_data.get("author")
+                content = event_data.get("content")
+                        
+                if author and content:
+                    # Extract meaningful text from ADK Content dictionary
+                    content_str = ""
+                    if isinstance(content, dict) and 'parts' in content:
+                        parts = []
+                        for p in content.get('parts', []):
+                            if 'text' in p:
+                                parts.append(p['text'])
+                            elif 'function_call' in p:
+                                func_name = p['function_call'].get('name')
+                                func_args = p['function_call'].get('args', {})
+                                parts.append(f"Called tool {func_name} with args: {json.dumps(func_args)}")
+                        content_str = "".join(parts)
+                    elif isinstance(content, str):
+                        content_str = content
+                    else:
+                        content_str = str(content)
+                        
+                    print(f"Event from {author}: {content_str}")
+                    
+                    # Fetch the latest full state from the ADK Agent Server
+                    if AGENT_ENGINE_ID:
+                        from google.adk.sessions.vertex_ai_session_service import VertexAiSessionService
+                        location = AGENT_ENGINE_ID.split("/")[3]
+                        project = AGENT_ENGINE_ID.split("/")[1]
+                        engine_id = AGENT_ENGINE_ID.split("/")[-1]
+                        
+                        # ADK stores sessions in Vertex AI
+                        va_session_service = VertexAiSessionService(
+                            project=project, location=location, agent_engine_id=engine_id
+                        )
+                        
+                        import asyncio
+                        # We are in a sync thread, use asyncio.run
+                        session_obj = asyncio.run(va_session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id))
+                        adk_state = session_obj.state if session_obj else {}
+                    else:
+                        session_resp = requests.get(f"{AGENT_ENDPOINT}/apps/{app_name}/users/{user_id}/sessions/{session_id}")
+                        if session_resp.status_code == 200:
+                            session_data = session_resp.json()
+                            adk_state = session_data.get("state", {})
+                        else:
+                            print(f"Warning: Failed to fetch ADK session state: {session_resp.text}")
+                            adk_state = {}
+                        
+                    if adk_state:
+                        # Merge our workflow updates (stage, active agent) into the ADK state
+                        adk_state.setdefault('workflow', {})['active_agent'] = author
+                        if author == "DocumentIngestion":
+                            adk_state['workflow']['stage'] = 'intake'
+                        elif author == "SolutionAgent":
+                            adk_state['workflow']['stage'] = 'drafting'
+                        elif author == "Governance":
+                            adk_state['workflow']['stage'] = 'review'
+                        elif author == "Editor":
+                            adk_state['workflow']['stage'] = 'finalization'
+                            
+                        state_manager.update_state(adk_state)
+                    
+                    # Append event with CLEAN string
+                    state_manager.append_event({
+                        "author": author,
+                        "content": content_str
+                    })
 
         # Update status to completed when the stream ends successfully
         print("Workflow stream completed successfully.")
@@ -210,7 +288,7 @@ async def upload_rfp(file: UploadFile = File(...)):
     print(f"File saved to: {file_path}")
     
     # Regenerate session ID for a completely fresh run on the ADK Server
-    session_id = f"session_{uuid.uuid4().hex[:8]}"
+    session_id = f"session-{uuid.uuid4().hex[:8]}"
     state_manager = FirestoreStateManager(session_id)
     
     # Reset state and set new file path
@@ -221,6 +299,29 @@ async def upload_rfp(file: UploadFile = File(...)):
     state_manager.init_state()
     state_manager.update_state(new_state)
     
+    AGENT_ENGINE_ID = os.getenv("AGENT_ENGINE_ID")
+    if AGENT_ENGINE_ID:
+        from google.adk.sessions.vertex_ai_session_service import VertexAiSessionService
+        location = AGENT_ENGINE_ID.split("/")[3]
+        project = AGENT_ENGINE_ID.split("/")[1]
+        engine_id = AGENT_ENGINE_ID.split("/")[-1]
+        
+        va_session_service = VertexAiSessionService(
+            project=project, location=location, agent_engine_id=engine_id
+        )
+        
+        # Explicitly create the session in Vertex AI before querying the agent
+        try:
+            await va_session_service.create_session(
+                app_name=app_name,
+                user_id=user_id,
+                session_id=session_id,
+                state=new_state
+            )
+            print(f"Created Vertex AI Session: {session_id}")
+        except Exception as e:
+            print(f"Warning: Failed to create Vertex AI session: {e}")
+            
     # Trigger workflow in background
     active_workflow_task = asyncio.create_task(run_workflow_task())
     

@@ -1,0 +1,638 @@
+{
+  "executive_summary": [
+  {
+    "claim_id": "claim_exec_001",
+    "section": "executive_summary",
+    "subtopic": "transformation_goal",
+    "category": "positioning",
+    "claim_type": "positioning",
+    "text": "The proposed approach is designed to support modernization of customer service operations through AI-assisted workflows, knowledge access, and operationally disciplined transformation.",
+    "requirements": [
+      "req_001"
+    ],
+    "evidence_ids": [
+      "ev_exec_001"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use as opening positioning statement."
+    ]
+  },
+  {
+    "claim_id": "claim_exec_002",
+    "section": "executive_summary",
+    "subtopic": "enterprise_readiness",
+    "category": "positioning",
+    "claim_type": "supporting_detail",
+    "text": "The solution approach is intended to balance customer experience improvement, agent productivity, security considerations, and phased implementation readiness.",
+    "requirements": [
+      "req_001"
+    ],
+    "evidence_ids": [
+      "ev_exec_002"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Good second paragraph support."
+    ]
+  },
+  {
+    "claim_id": "claim_exec_003",
+    "section": "executive_summary",
+    "subtopic": "phased_delivery",
+    "category": "implementation",
+    "claim_type": "implementation_detail",
+    "text": "A phased delivery model allows validation of business and operational assumptions before broader rollout.",
+    "requirements": [
+      "req_001",
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_003"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "differentiator",
+    "drafting_notes": [
+      "Use to connect vision to execution."
+    ]
+  }
+],
+"technical_approach": [
+  {
+    "claim_id": "claim_tech_001",
+    "section": "technical_approach",
+    "subtopic": "agent_assist",
+    "category": "solution",
+    "claim_type": "core_capability",
+    "text": "The platform supports AI-assisted customer service workflows, including agent assist and knowledge retrieval capabilities.",
+    "requirements": [
+      "req_002"
+    ],
+    "evidence_ids": [
+      "ev_tech_001"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Core technical section anchor."
+    ]
+  },
+  {
+    "claim_id": "claim_tech_002",
+    "section": "technical_approach",
+    "subtopic": "omnichannel_orchestration",
+    "category": "solution",
+    "claim_type": "supporting_detail",
+    "text": "The proposed solution supports orchestration across customer service channels, helping service teams manage interactions more consistently.",
+    "requirements": [
+      "req_002"
+    ],
+    "evidence_ids": [
+      "ev_tech_002"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Use to add breadth to platform description."
+    ]
+  },
+  {
+    "claim_id": "claim_tech_003",
+    "section": "technical_approach",
+    "subtopic": "knowledge_retrieval",
+    "category": "solution",
+    "claim_type": "supporting_detail",
+    "text": "Knowledge retrieval capabilities are intended to improve access to relevant information during assisted service interactions.",
+    "requirements": [
+      "req_002"
+    ],
+    "evidence_ids": [
+      "ev_tech_003"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Good supporting paragraph content."
+    ]
+  },
+  {
+    "claim_id": "claim_tech_004",
+    "section": "technical_approach",
+    "subtopic": "integration_scope",
+    "category": "integration",
+    "claim_type": "supporting_detail",
+    "text": "Implementation planning should confirm integration scope, enterprise system dependencies, and target operating model assumptions during discovery.",
+    "requirements": [
+      "req_002",
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_impl_001"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "differentiator",
+    "drafting_notes": [
+      "Helps technical section feel more enterprise-ready."
+    ]
+  },
+  {
+    "claim_id": "claim_tech_005",
+    "section": "technical_approach",
+    "subtopic": "deployment_model",
+    "category": "deployment",
+    "claim_type": "supporting_detail",
+    "text": "Deployment assumptions should be aligned to enterprise architecture, security requirements, and implementation scope during solution design.",
+    "requirements": [
+      "req_002",
+      "req_003"
+    ],
+    "evidence_ids": [
+      "ev_impl_002"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Use for deployment paragraph."
+    ]
+  }
+],
+"security": [
+  {
+    "claim_id": "claim_sec_001",
+    "section": "security",
+    "subtopic": "encryption",
+    "category": "security",
+    "claim_type": "core_capability",
+    "text": "The platform supports encryption at rest and in transit for supported deployments.",
+    "requirements": [
+      "req_003"
+    ],
+    "evidence_ids": [
+      "ev_001"
+    ],
+    "usage_constraints": [
+      "Do not imply customer-managed keys unless separately verified."
+    ],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use as foundational security statement."
+    ]
+  },
+  {
+    "claim_id": "claim_sec_002",
+    "section": "security",
+    "subtopic": "access_control",
+    "category": "security",
+    "claim_type": "supporting_detail",
+    "text": "Supported deployment patterns include access controls appropriate for enterprise environments.",
+    "requirements": [
+      "req_003"
+    ],
+    "evidence_ids": [
+      "ev_002"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use in controls paragraph."
+    ]
+  },
+  {
+    "claim_id": "claim_sec_003",
+    "section": "security",
+    "subtopic": "audit_logging",
+    "category": "security",
+    "claim_type": "supporting_detail",
+    "text": "Supported deployment patterns include audit logging capabilities that can support enterprise monitoring and review processes.",
+    "requirements": [
+      "req_003"
+    ],
+    "evidence_ids": [
+      "ev_002"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Pair with access control."
+    ]
+  },
+  {
+    "claim_id": "claim_sec_004",
+    "section": "security",
+    "subtopic": "network_isolation",
+    "category": "security",
+    "claim_type": "supporting_detail",
+    "text": "Supported deployment patterns include network isolation controls as part of secure cloud architecture planning.",
+    "requirements": [
+      "req_003"
+    ],
+    "evidence_ids": [
+      "ev_002"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Useful for hosting subsection."
+    ]
+  },
+  {
+    "claim_id": "claim_sec_005",
+    "section": "security",
+    "subtopic": "enterprise_alignment",
+    "category": "security",
+    "claim_type": "supporting_detail",
+    "text": "Security and deployment details should be aligned to enterprise architecture and internal control requirements during solution design.",
+    "requirements": [
+      "req_003"
+    ],
+    "evidence_ids": [
+      "ev_impl_002"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "differentiator",
+    "drafting_notes": [
+      "Helps avoid overclaiming while adding depth."
+    ]
+  },
+  {
+    "claim_id": "claim_sec_006",
+    "section": "security",
+    "subtopic": "documentation",
+    "category": "security",
+    "claim_type": "supporting_detail",
+    "text": "Relevant security and compliance documentation can be provided using approved materials during the proposal and diligence process.",
+    "requirements": [
+      "req_003"
+    ],
+    "evidence_ids": [
+      "ev_sec_006"
+    ],
+    "usage_constraints": [
+      "Use only with approved documentation language."
+    ],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Useful closing paragraph for security section."
+    ]
+  },
+  {
+    "claim_id": "claim_sec_007",
+    "section": "security",
+    "subtopic": "certifications",
+    "category": "security",
+    "claim_type": "supporting_detail",
+    "text": "Approved certification language should be limited to verified certifications and exact approved naming.",
+    "requirements": [
+      "req_003"
+    ],
+    "evidence_ids": [
+      "ev_cert_001",
+      "ev_cert_002"
+    ],
+    "usage_constraints": [
+      "Do not state PCI certification."
+    ],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use to keep certification language safe."
+    ]
+  }
+],
+"implementation_plan": [
+  {
+    "claim_id": "claim_impl_001",
+    "section": "implementation_plan",
+    "subtopic": "discovery",
+    "category": "implementation",
+    "claim_type": "implementation_detail",
+    "text": "Implementation typically begins with discovery activities focused on business objectives, workflow scope, integration needs, and operating model expectations.",
+    "requirements": [
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_003"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use as phase 1 description."
+    ]
+  },
+  {
+    "claim_id": "claim_impl_002",
+    "section": "implementation_plan",
+    "subtopic": "pilot",
+    "category": "implementation",
+    "claim_type": "implementation_detail",
+    "text": "A pilot deployment phase allows technical validation and operational learning before broader rollout.",
+    "requirements": [
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_003"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use as phase 2 description."
+    ]
+  },
+  {
+    "claim_id": "claim_impl_003",
+    "section": "implementation_plan",
+    "subtopic": "controlled_rollout",
+    "category": "implementation",
+    "claim_type": "implementation_detail",
+    "text": "Controlled rollout supports staged expansion based on governance checkpoints, readiness criteria, and pilot findings.",
+    "requirements": [
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_003"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use as phase 3 description."
+    ]
+  },
+  {
+    "claim_id": "claim_impl_004",
+    "section": "implementation_plan",
+    "subtopic": "optimization",
+    "category": "implementation",
+    "claim_type": "implementation_detail",
+    "text": "Operational optimization can include refinement of workflows, adoption patterns, and support processes after initial deployment.",
+    "requirements": [
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_003"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Use as final phase description."
+    ]
+  },
+  {
+    "claim_id": "claim_impl_005",
+    "section": "implementation_plan",
+    "subtopic": "governance",
+    "category": "implementation",
+    "claim_type": "supporting_detail",
+    "text": "A phased delivery model is intended to improve visibility into scope, dependencies, and implementation readiness at each stage.",
+    "requirements": [
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_impl_005"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "differentiator",
+    "drafting_notes": [
+      "Good wrap-up sentence."
+    ]
+  },
+  {
+    "claim_id": "claim_impl_006",
+    "section": "implementation_plan",
+    "subtopic": "change_management",
+    "category": "implementation",
+    "claim_type": "supporting_detail",
+    "text": "Implementation planning should account for stakeholder alignment, operating model decisions, and user adoption considerations.",
+    "requirements": [
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_impl_006"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Adds realism and depth."
+    ]
+  }
+],
+"pricing_assumptions": [
+  {
+    "claim_id": "claim_price_001",
+    "section": "pricing_assumptions",
+    "subtopic": "indicative_pricing",
+    "category": "commercial",
+    "claim_type": "commercial_assumption",
+    "text": "Pricing should be presented as indicative and subject to final scope validation.",
+    "requirements": [
+      "req_005"
+    ],
+    "evidence_ids": [
+      "ev_005"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use in opening pricing paragraph."
+    ]
+  },
+  {
+    "claim_id": "claim_price_002",
+    "section": "pricing_assumptions",
+    "subtopic": "scope_dependencies",
+    "category": "commercial",
+    "claim_type": "commercial_assumption",
+    "text": "Commercial proposals should clearly separate assumptions, dependencies, and optional services.",
+    "requirements": [
+      "req_005"
+    ],
+    "evidence_ids": [
+      "ev_005"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Core commercial structure statement."
+    ]
+  },
+  {
+    "claim_id": "claim_price_003",
+    "section": "pricing_assumptions",
+    "subtopic": "implementation_services",
+    "category": "commercial",
+    "claim_type": "commercial_assumption",
+    "text": "Implementation services should be scoped in alignment with confirmed deployment scope, timeline, and operating model decisions.",
+    "requirements": [
+      "req_005",
+      "req_004"
+    ],
+    "evidence_ids": [
+      "ev_005"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Use to add detail to pricing section."
+    ]
+  },
+  {
+    "claim_id": "claim_price_004",
+    "section": "pricing_assumptions",
+    "subtopic": "optional_services",
+    "category": "commercial",
+    "claim_type": "commercial_assumption",
+    "text": "Optional services and expanded rollout phases should be identified separately from core response scope where applicable.",
+    "requirements": [
+      "req_005"
+    ],
+    "evidence_ids": [
+      "ev_005"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Useful for third paragraph."
+    ]
+  },
+  {
+    "claim_id": "claim_price_005",
+    "section": "pricing_assumptions",
+    "subtopic": "usage_assumptions",
+    "category": "commercial",
+    "claim_type": "commercial_assumption",
+    "text": "Final commercial terms depend on validated assumptions regarding scope, usage, deployment model, and service requirements.",
+    "requirements": [
+      "req_005"
+    ],
+    "evidence_ids": [
+      "ev_005"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "differentiator",
+    "drafting_notes": [
+      "Good closing statement."
+    ]
+  }
+],
+"customer_references": [
+  {
+    "claim_id": "claim_ref_001",
+    "section": "customer_references",
+    "subtopic": "anonymized_reference",
+    "category": "reference",
+    "claim_type": "reference_talking_point",
+    "text": "Relevant experience may be described using approved anonymized reference language for a Tier-1 North American Bank.",
+    "requirements": [
+      "req_006"
+    ],
+    "evidence_ids": [
+      "ref_001"
+    ],
+    "usage_constraints": [
+      "Do not disclose customer name."
+    ],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use as opening reference statement."
+    ]
+  },
+  {
+    "claim_id": "claim_ref_002",
+    "section": "customer_references",
+    "subtopic": "agent_assist_experience",
+    "category": "reference",
+    "claim_type": "reference_talking_point",
+    "text": "Approved reference language includes support for improved agent-assist experiences and modernization of service operations.",
+    "requirements": [
+      "req_006"
+    ],
+    "evidence_ids": [
+      "ref_001"
+    ],
+    "usage_constraints": [
+      "Do not claim quantitative outcomes unless separately approved."
+    ],
+    "approved_status": "approved",
+    "priority": "high",
+    "style_role": "must_include",
+    "drafting_notes": [
+      "Use to add substance without overclaiming."
+    ]
+  },
+  {
+    "claim_id": "claim_ref_003",
+    "section": "customer_references",
+    "subtopic": "confidentiality",
+    "category": "reference",
+    "claim_type": "supporting_detail",
+    "text": "Additional reference detail may be provided in accordance with confidentiality restrictions and approval requirements.",
+    "requirements": [
+      "req_006"
+    ],
+    "evidence_ids": [
+      "ref_001"
+    ],
+    "usage_constraints": [],
+    "approved_status": "approved",
+    "priority": "medium",
+    "style_role": "optional_detail",
+    "drafting_notes": [
+      "Good closing line for reference section."
+    ]
+  }
+]
+}

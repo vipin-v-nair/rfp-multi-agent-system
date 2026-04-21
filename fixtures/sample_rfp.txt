@@ -1,9 +1,0 @@
-Request for Proposal (RFP)
-Project: Cloud Migration
-
-Requirements:
-1. The system must support high availability with at least 99.99% uptime SLA.
-2. The provider must be ISO 27001 certified for information security.
-3. The solution must be scalable to handle peak loads.
-
-Please provide your response addressing these points.

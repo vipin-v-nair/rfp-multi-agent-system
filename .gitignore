@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+workflow_state.json
+workflow_events.json
+apps/.adk/
+demo_data/rfp/uploads/
+.DS_Store

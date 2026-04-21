@@ -1,0 +1,32 @@
+[
+  {
+    "reference_id": "ref_001",
+    "display_name": "Tier-1 North American Bank",
+    "anonymized": true,
+    "allowed_summary_usage": true,
+    "allowed_verbatim_usage": false,
+    "approved_talking_points": [
+      "Improved agent-assist experience",
+      "Supported modernization of service operations"
+    ],
+    "restrictions": [
+      "Do not reveal contract value",
+      "Do not reveal customer name",
+      "Do not claim quantitative outcomes unless separately approved"
+    ]
+  },
+  {
+    "reference_id": "ref_002",
+    "display_name": "Global Financial Institution",
+    "anonymized": true,
+    "allowed_summary_usage": true,
+    "allowed_verbatim_usage": false,
+    "approved_talking_points": [
+      "Supported secure deployment planning",
+      "Enabled phased transformation approach"
+    ],
+    "restrictions": [
+      "Do not identify region or timeline"
+    ]
+  }
+]

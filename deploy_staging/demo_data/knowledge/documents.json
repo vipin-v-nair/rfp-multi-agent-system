@@ -1,0 +1,38 @@
+[
+  {
+    "doc_id": "doc_001",
+    "title": "Contact Center AI Platform Overview",
+    "doc_type": "capability_sheet",
+    "product_line": "contact_center_ai",
+    "industry": ["banking", "insurance"],
+    "approval_status": "approved",
+    "customer_safe": true
+  },
+  {
+    "doc_id": "doc_002",
+    "title": "Security Controls Overview",
+    "doc_type": "security_faq",
+    "product_line": "platform_security",
+    "industry": ["banking"],
+    "approval_status": "approved",
+    "customer_safe": true
+  },
+  {
+    "doc_id": "doc_003",
+    "title": "Implementation Methodology",
+    "doc_type": "implementation_guide",
+    "product_line": "services",
+    "industry": ["banking", "enterprise"],
+    "approval_status": "approved",
+    "customer_safe": true
+  },
+  {
+    "doc_id": "doc_004",
+    "title": "Commercial Packaging Guidance",
+    "doc_type": "pricing_guidance",
+    "product_line": "commercial",
+    "industry": ["enterprise"],
+    "approval_status": "approved",
+    "customer_safe": true
+  }
+]

@@ -1,8 +1,0 @@
-{
-  "project_id": "rfp_001",
-  "max_pages": 20,
-  "required_format": "pdf",
-  "must_include_executive_contact": true,
-  "must_include_security_section": true,
-  "must_include_pricing_assumptions": true
-}
