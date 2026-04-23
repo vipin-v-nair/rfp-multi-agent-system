@@ -1,14 +1,15 @@
+import os
+import sys
+import json
 from google.adk.agents import LlmAgent
 from google.adk.tools import ToolContext
-from mcp_stubs.knowledge import get_evidence
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioConnectionParams
+from mcp import StdioServerParameters
 from typing import Dict
-import json
 from a2ui_setup import generate_ui_instruction
 
-def search_evidence(query: str, tool_context: ToolContext) -> Dict:
-    """Queries the Knowledge base for evidence supporting a requirement."""
-    print(f"Evidence Agent: Searching evidence for: {query}")
-    return get_evidence(query)
+_MCP_SERVERS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mcp_servers")
+
 
 def save_evidence_workspace(workspace_json: str, tool_context: ToolContext) -> Dict:
     """Saves the gathered evidence to the session state."""
@@ -16,10 +17,9 @@ def save_evidence_workspace(workspace_json: str, tool_context: ToolContext) -> D
     try:
         workspace = json.loads(workspace_json)
         tool_context.state['evidence_workspace'] = workspace
-        
+
         # Persist to file for dashboard
         try:
-            import os
             if os.path.exists('workflow_state.json'):
                 with open('workflow_state.json', 'r', encoding='utf-8') as f:
                     state = json.load(f)
@@ -28,24 +28,25 @@ def save_evidence_workspace(workspace_json: str, tool_context: ToolContext) -> D
                     json.dump(state, f, indent=2)
         except Exception as e:
             print(f"Evidence Agent: Error writing to workflow_state.json: {e}")
-            
+
         return {"status": "success", "message": "Evidence workspace saved."}
     except Exception as e:
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
 
+
 # Generate A2UI enriched instructions
 instruction = generate_ui_instruction(
     role="You are the Evidence Agent. Your job is to gather evidence for RFP requirements.",
-    workflow="""Read requirements from 'rfp_analysis' in state. 
-    
+    workflow="""Read requirements from 'rfp_analysis' in state.
+
     HITL Feedback Handling:
     If state['workflow']['status'] is 'revision_requested' and 'user_feedback' is present in the state:
     - Read the 'user_feedback' provided by the user.
-    - If the feedback implies that information is missing or incorrect, use the `search_evidence` tool to search for new evidence.
+    - If the feedback implies that information is missing or incorrect, use the `get_evidence` tool to search for new evidence.
     - Update the 'evidence_workspace' with any new evidence found or modifications required.
-    
+
     Standard Steps:
-    Search for evidence benchmarks to populate a JSON output containing:
+    Use the `get_evidence` tool to search for evidence benchmarks. Compile the results into a JSON object containing:
 
     - approved_claims: array of objects with claim_id, text, category
     - customer_references: array of objects with reference_id, display_name, usage
@@ -62,5 +63,15 @@ evidence_agent = LlmAgent(
     name="Evidence",
     model="gemini-2.5-pro",
     instruction=instruction,
-    tools=[search_evidence, save_evidence_workspace]
+    tools=[
+        MCPToolset(
+            connection_params=StdioConnectionParams(
+                server_params=StdioServerParameters(
+                    command=sys.executable,
+                    args=[os.path.join(_MCP_SERVERS_DIR, "knowledge_server.py")],
+                )
+            )
+        ),
+        save_evidence_workspace,
+    ]
 )

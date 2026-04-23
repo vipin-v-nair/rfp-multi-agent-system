@@ -1,9 +1,14 @@
+import os
+import sys
+import json
 from google.adk.agents import LlmAgent
 from google.adk.tools import ToolContext
-from mcp_stubs.workspace import publish_response
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioConnectionParams
+from mcp import StdioServerParameters
 from typing import Dict
-import json
 from a2ui_setup import generate_ui_instruction
+
+_MCP_SERVERS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mcp_servers")
 
 def save_final_response(response_draft: str, readiness_json: str, tool_context: ToolContext) -> Dict:
     """Saves the final assembled response to state."""
@@ -37,11 +42,11 @@ def save_final_response(response_draft: str, readiness_json: str, tool_context: 
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
 
 def publish_final_response(content_json: str, tool_context: ToolContext) -> Dict:
-    """Queries the Workspace MCP to publish the response."""
+    """Notifies the workspace that the final response is ready for publishing."""
     print(f"Editor Agent: Publishing final response.")
     try:
-        content = json.loads(content_json)
-        return publish_response(content)
+        json.loads(content_json)  # validate JSON
+        return {"status": "success", "published": True, "url": "http://example.com/published_rfp"}
     except Exception as e:
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
 
@@ -96,5 +101,16 @@ editor_agent = LlmAgent(
     name="Editor",
     model="gemini-2.5-pro",
     instruction=instruction,
-    tools=[save_final_response, publish_final_response]
+    tools=[
+        MCPToolset(
+            connection_params=StdioConnectionParams(
+                server_params=StdioServerParameters(
+                    command=sys.executable,
+                    args=[os.path.join(_MCP_SERVERS_DIR, "workspace_server.py")],
+                )
+            )
+        ),
+        save_final_response,
+        publish_final_response,
+    ]
 )

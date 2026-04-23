@@ -1,9 +1,14 @@
+import os
+import sys
+import json
 from google.adk.agents import LlmAgent
 from google.adk.tools import ToolContext
-from mcp_stubs.workspace import save_draft
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioConnectionParams
+from mcp import StdioServerParameters
 from typing import Dict
-import json
 from a2ui_setup import generate_ui_instruction
+
+_MCP_SERVERS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mcp_servers")
 
 def build_section_brief(section_id, approved_claims, requirements):
     section_claims = []
@@ -60,7 +65,6 @@ def save_solution_draft(draft_json: str, tool_context: ToolContext) -> Dict:
         draft = json.loads(draft_json)
         section_id = draft.get("section_id")
         content = draft.get("content")
-        mcp_result = save_draft(section_id, content)
         workspace = tool_context.state.get('solution_workspace', {})
         workspace[section_id] = content
         tool_context.state['solution_workspace'] = workspace
@@ -80,9 +84,8 @@ def save_solution_draft(draft_json: str, tool_context: ToolContext) -> Dict:
             print(f"Solution Agent: Error writing to workflow_state.json: {e}")
             
         return {
-            "status": "success", 
-            "message": f"Draft {section_id} saved to state.", 
-            "mcp_status": mcp_result["status"]
+            "status": "success",
+            "message": f"Draft {section_id} saved to state.",
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
@@ -142,5 +145,16 @@ solution_agent = LlmAgent(
     name="Solution",
     model="gemini-2.5-pro",
     instruction=instruction,
-    tools=[build_section_brief, save_solution_draft]
+    tools=[
+        MCPToolset(
+            connection_params=StdioConnectionParams(
+                server_params=StdioServerParameters(
+                    command=sys.executable,
+                    args=[os.path.join(_MCP_SERVERS_DIR, "workspace_server.py")],
+                )
+            )
+        ),
+        build_section_brief,
+        save_solution_draft,
+    ]
 )

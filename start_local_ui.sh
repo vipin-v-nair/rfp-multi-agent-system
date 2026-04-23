@@ -7,6 +7,9 @@ if [ -f .env ]; then
 fi
 
 unset GOOGLE_APPLICATION_CREDENTIALS
+# Force local mode: unset AGENT_ENGINE_ID so the app calls the local ADK server
+# instead of trying to create Vertex AI sessions (which hangs without cloud auth)
+unset AGENT_ENGINE_ID
 
 # Detect venv binary path (Windows uses Scripts/, Mac/Linux uses bin/)
 if [ -d ".venv/Scripts" ]; then

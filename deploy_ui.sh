@@ -20,7 +20,7 @@ echo "Deploying FastAPI UI to Cloud Run in project ${GOOGLE_CLOUD_PROJECT}..."
 # On Windows, gcloud in bash requires PowerShell due to Python version conflicts.
 # On Mac/Linux, gcloud runs directly.
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
-  powershell -Command "& { gcloud run deploy rfp-dashboard \
+  powershell -Command "& { gcloud beta run deploy rfp-dashboard \
     --source . \
     --platform=managed \
     --project=${GOOGLE_CLOUD_PROJECT} \
