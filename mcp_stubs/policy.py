@@ -11,7 +11,7 @@ def validate_claim(claim: str) -> Dict:
     fixtures_path = os.path.join(base_dir, 'demo_data', 'knowledge', 'approved_claims.json')
     
     try:
-        with open(fixtures_path, 'r') as f:
+        with open(fixtures_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             for category_claims in data.values():
                 for item in category_claims:

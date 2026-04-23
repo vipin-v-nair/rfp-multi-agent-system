@@ -1,0 +1,12 @@
+# Force LF line endings for shell scripts on all platforms
+*.sh text eol=lf
+
+# Python files use LF
+*.py text eol=lf
+
+# Windows-specific files can use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Auto-detect everything else
+* text=auto

@@ -1,3 +1,10 @@
+import sys
+# Ensure UTF-8 stdout on all platforms (needed on Windows with default cp1252 encoding)
+try:
+    sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+except AttributeError:
+    pass  # Python < 3.7 fallback
+
 from fastapi import FastAPI, BackgroundTasks, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse
 import uvicorn

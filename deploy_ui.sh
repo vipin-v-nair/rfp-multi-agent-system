@@ -3,7 +3,7 @@ set -e
 
 # Load environment variables
 if [ -f .env ]; then
-  source .env
+  set -a && source .env && set +a
 else
   echo "Error: .env file not found. Please copy .env.example to .env and fill in the values."
   exit 1
@@ -14,13 +14,26 @@ if [ -z "$AGENT_ENGINE_ID" ] || [[ "$AGENT_ENGINE_ID" == *"your-engine-id"* ]]; 
   exit 1
 fi
 
-echo "🚀 Deploying FastAPI UI to Cloud Run in project ${GOOGLE_CLOUD_PROJECT}..."
+unset GOOGLE_APPLICATION_CREDENTIALS
+echo "Deploying FastAPI UI to Cloud Run in project ${GOOGLE_CLOUD_PROJECT}..."
 
-gcloud run deploy rfp-dashboard \
-  --source . \
-  --project=${GOOGLE_CLOUD_PROJECT} \
-  --region=${GCP_REGION} \
-  --allow-unauthenticated \
-  --set-env-vars="AGENT_ENGINE_ID=${AGENT_ENGINE_ID}"
+# On Windows, gcloud in bash requires PowerShell due to Python version conflicts.
+# On Mac/Linux, gcloud runs directly.
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "cygwin" || "$OSTYPE" == "win32" ]]; then
+  powershell -Command "& { gcloud run deploy rfp-dashboard \
+    --source . \
+    --platform=managed \
+    --project=${GOOGLE_CLOUD_PROJECT} \
+    --region=${GCP_REGION} \
+    --allow-unauthenticated \
+    --set-env-vars='AGENT_ENGINE_ID=${AGENT_ENGINE_ID}' 2>&1 }"
+else
+  gcloud run deploy rfp-dashboard \
+    --source . \
+    --project=${GOOGLE_CLOUD_PROJECT} \
+    --region=${GCP_REGION} \
+    --allow-unauthenticated \
+    --set-env-vars="AGENT_ENGINE_ID=${AGENT_ENGINE_ID}"
+fi
 
-echo "✅ Cloud Run Deployment Complete!"
+echo "Cloud Run Deployment Complete!"

@@ -11,7 +11,7 @@ def get_evidence(query: str) -> Dict:
     fixtures_path = os.path.join(base_dir, 'demo_data', 'knowledge', 'approved_claims.json')
     
     try:
-        with open(fixtures_path, 'r') as f:
+        with open(fixtures_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             results = []
             for section_claims in data.values():
@@ -56,7 +56,7 @@ def get_approved_claims() -> List[str]:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     fixtures_path = os.path.join(base_dir, 'demo_data', 'knowledge', 'approved_claims.json')
     try:
-        with open(fixtures_path, 'r') as f:
+        with open(fixtures_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             claims = []
             for section_claims in data.values():

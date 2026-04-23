@@ -17,19 +17,17 @@ def save_final_response(response_draft: str, readiness_json: str, tool_context: 
         tool_context.state.setdefault('workflow', {})['status'] = 'pending_review'
 
         # Persist to file for dashboard
-        from state import state_lock
         try:
-            with state_lock:
-                with open('workflow_state.json', 'r') as f:
+            import os
+            if os.path.exists('workflow_state.json'):
+                with open('workflow_state.json', 'r', encoding='utf-8') as f:
                     state = json.load(f)
-                
                 state['final_output'] = {
                     "response_draft": response_draft,
                     "readiness": readiness
                 }
                 state.setdefault('workflow', {})['status'] = 'pending_review'
-                
-                with open('workflow_state.json', 'w') as f:
+                with open('workflow_state.json', 'w', encoding='utf-8') as f:
                     json.dump(state, f, indent=2)
         except Exception as e:
             print(f"Editor Agent: Error writing to workflow_state.json: {e}")

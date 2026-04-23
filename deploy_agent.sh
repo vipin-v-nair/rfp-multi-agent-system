@@ -1,7 +1,10 @@
 #!/bin/bash
 set -e
 
-echo "🚀 Preparing Agent Engine deployment package..."
+# Unset service account key so ADC is used
+unset GOOGLE_APPLICATION_CREDENTIALS
+
+echo "Preparing Agent Engine deployment package..."
 mkdir -p deploy_staging/agents
 cp agents/*.py deploy_staging/agents/
 cp -r mcp_stubs deploy_staging/
@@ -27,16 +30,23 @@ EOF
 
 # Load environment variables
 if [ -f .env ]; then
-  source .env
+  set -a && source .env && set +a
 else
   echo "Error: .env file not found. Please copy .env.example to .env and fill in the values."
   exit 1
 fi
 
-echo "📦 Deploying to Vertex AI Agent Engine in project ${GOOGLE_CLOUD_PROJECT}..."
+echo "Deploying to Vertex AI Agent Engine in project ${GOOGLE_CLOUD_PROJECT}..."
+
+# Detect venv binary path (Windows uses Scripts/, Mac/Linux uses bin/)
+if [ -d ".venv/Scripts" ]; then
+  VENV_BIN=".venv/Scripts"
+else
+  VENV_BIN=".venv/bin"
+fi
 
 # Build the base command
-CMD=".venv/bin/adk deploy agent_engine \
+CMD="$VENV_BIN/adk deploy agent_engine \
   --project=${GOOGLE_CLOUD_PROJECT} \
   --region=${GCP_REGION} \
   --display_name=rfp_system"
@@ -49,4 +59,4 @@ fi
 # Execute the command
 $CMD deploy_staging
 
-echo "✅ Agent Engine Deployment Complete!"
+echo "Agent Engine Deployment Complete!"

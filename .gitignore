@@ -7,3 +7,5 @@ workflow_events.json
 apps/.adk/
 demo_data/rfp/uploads/
 .DS_Store
+deploy_staging/
+.claude/

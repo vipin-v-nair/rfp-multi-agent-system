@@ -17,11 +17,13 @@ def save_rfp_analysis(analysis_json: str, tool_context: ToolContext) -> Dict:
         
         # Persist to file for dashboard
         try:
-            with open('workflow_state.json', 'r') as f:
-                state = json.load(f)
-            state['rfp_analysis'] = analysis
-            with open('workflow_state.json', 'w') as f:
-                json.dump(state, f, indent=2)
+            import os
+            if os.path.exists('workflow_state.json'):
+                with open('workflow_state.json', 'r', encoding='utf-8') as f:
+                    state = json.load(f)
+                state['rfp_analysis'] = analysis
+                with open('workflow_state.json', 'w', encoding='utf-8') as f:
+                    json.dump(state, f, indent=2)
         except Exception as e:
             print(f"Intake Agent: Error writing to workflow_state.json: {e}")
             
