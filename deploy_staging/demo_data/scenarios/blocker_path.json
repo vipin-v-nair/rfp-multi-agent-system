@@ -1,9 +1,0 @@
-{
-  "scenario_id": "blocker_path",
-  "description": "Security section contains unsupported PCI certification claim.",
-  "draft_injection": {
-    "section_id": "security",
-    "bad_phrase": "We are PCI certified."
-  },
-  "expected_finding_type": "unsupported_claim"
-}

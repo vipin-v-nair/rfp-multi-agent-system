@@ -1,6 +1,0 @@
-{
-  "scenario_id": "happy_path",
-  "description": "All sections supported and governance clears with no blockers.",
-  "inject_findings": [],
-  "inject_approvals": []
-}

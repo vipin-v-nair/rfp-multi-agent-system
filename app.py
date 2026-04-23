@@ -95,115 +95,125 @@ def run_workflow_sync_impl(feedback: str = None):
         # Process the stream (Handles both SSE and Vertex AI JSON Arrays)
         buffer = ""
         for line in response.iter_lines():
-            if line:
-                decoded_line = line.decode('utf-8').strip()
-                
-                # Handle local ADK server SSE format
-                if decoded_line.startswith("data: "):
-                    data_str = decoded_line[len("data: "):]
-                    if data_str == "[DONE]":
-                        break
-                    try:
-                        event_data = json.loads(data_str)
-                    except json.JSONDecodeError:
-                        continue
-                
-                # Handle Vertex AI JSON Array stream
-                else:
-                    # Accumulate lines since JSON might be split across lines
-                    buffer += decoded_line
-                    
-                    # We look for complete JSON objects in the buffer.
-                    # Since Vertex AI streams `{ "result": ... }`, we can try to extract the objects.
-                    # A simple heuristic: if the buffer contains a complete dict, try parsing it.
-                    if buffer == "[" or buffer == "," or buffer == "]":
-                        buffer = ""
-                        continue
-                        
-                    try:
-                        # It might have a trailing comma
-                        clean_buf = buffer.rstrip(',')
-                        parsed = json.loads(clean_buf)
-                        
-                        # Vertex AI wraps the yielded object in {"result": ...}
-                        if "result" in parsed:
-                            event_data = parsed["result"]
-                        else:
-                            event_data = parsed
-                            
-                        buffer = "" # Reset buffer after successful parse
-                    except json.JSONDecodeError:
-                        # Incomplete JSON object, keep accumulating
-                        continue
+            if not line:
+                continue
 
-                # Now we have event_data
+            decoded_line = line.decode('utf-8').strip()
+            events_to_process = []
+
+            # Handle local ADK server SSE format
+            if decoded_line.startswith("data: "):
+                data_str = decoded_line[len("data: "):]
+                if data_str == "[DONE]":
+                    break
+                try:
+                    parsed = json.loads(data_str)
+                    if isinstance(parsed, dict):
+                        events_to_process = [parsed]
+                except json.JSONDecodeError:
+                    continue
+
+            # Handle Vertex AI JSON Array stream
+            else:
+                buffer += decoded_line
+
+                # Skip bare array punctuation
+                if buffer in ("[", ",", "]"):
+                    buffer = ""
+                    continue
+
+                try:
+                    parsed = json.loads(buffer.rstrip(','))
+
+                    # Vertex AI may stream individual objects {"result": ...}
+                    # or a full JSON array [{...}, {...}].
+                    # Normalise either form to a flat list of event dicts.
+                    if isinstance(parsed, list):
+                        for item in parsed:
+                            if not isinstance(item, dict):
+                                continue
+                            events_to_process.append(
+                                item["result"] if "result" in item else item
+                            )
+                    elif isinstance(parsed, dict) and "result" in parsed:
+                        events_to_process = [parsed["result"]]
+                    elif isinstance(parsed, dict):
+                        events_to_process = [parsed]
+
+                    buffer = ""  # Reset after successful parse
+                except json.JSONDecodeError:
+                    continue  # Incomplete chunk — keep accumulating
+
+            # Process each event dict
+            for event_data in events_to_process:
+                if not isinstance(event_data, dict):
+                    continue
+
                 author = event_data.get("author")
                 content = event_data.get("content")
-                        
-                if author and content:
-                    # Extract meaningful text from ADK Content dictionary
-                    content_str = ""
-                    if isinstance(content, dict) and 'parts' in content:
-                        parts = []
-                        for p in content.get('parts', []):
-                            if 'text' in p:
-                                parts.append(p['text'])
-                            elif 'function_call' in p:
-                                func_name = p['function_call'].get('name')
-                                func_args = p['function_call'].get('args', {})
-                                parts.append(f"Called tool {func_name} with args: {json.dumps(func_args)}")
-                        content_str = "".join(parts)
-                    elif isinstance(content, str):
-                        content_str = content
+
+                if not author or not content:
+                    continue
+
+                # Extract meaningful text from ADK Content dictionary
+                content_str = ""
+                if isinstance(content, dict) and 'parts' in content:
+                    parts = []
+                    for p in content.get('parts', []):
+                        if 'text' in p:
+                            parts.append(p['text'])
+                        elif 'function_call' in p:
+                            func_name = p['function_call'].get('name')
+                            func_args = p['function_call'].get('args', {})
+                            parts.append(f"Called tool {func_name} with args: {json.dumps(func_args)}")
+                    content_str = "".join(parts)
+                elif isinstance(content, str):
+                    content_str = content
+                else:
+                    content_str = str(content)
+
+                print(f"Event from {author}: {content_str}")
+
+                # Fetch the latest full state from the ADK Agent Server
+                if AGENT_ENGINE_ID:
+                    from google.adk.sessions.vertex_ai_session_service import VertexAiSessionService
+                    location = AGENT_ENGINE_ID.split("/")[3]
+                    project = AGENT_ENGINE_ID.split("/")[1]
+                    engine_id = AGENT_ENGINE_ID.split("/")[-1]
+
+                    va_session_service = VertexAiSessionService(
+                        project=project, location=location, agent_engine_id=engine_id
+                    )
+
+                    import asyncio
+                    session_obj = asyncio.run(va_session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id))
+                    adk_state = session_obj.state if session_obj else {}
+                else:
+                    session_resp = requests.get(f"{AGENT_ENDPOINT}/apps/{app_name}/users/{user_id}/sessions/{session_id}")
+                    if session_resp.status_code == 200:
+                        session_data = session_resp.json()
+                        adk_state = session_data.get("state", {})
                     else:
-                        content_str = str(content)
-                        
-                    print(f"Event from {author}: {content_str}")
-                    
-                    # Fetch the latest full state from the ADK Agent Server
-                    if AGENT_ENGINE_ID:
-                        from google.adk.sessions.vertex_ai_session_service import VertexAiSessionService
-                        location = AGENT_ENGINE_ID.split("/")[3]
-                        project = AGENT_ENGINE_ID.split("/")[1]
-                        engine_id = AGENT_ENGINE_ID.split("/")[-1]
-                        
-                        # ADK stores sessions in Vertex AI
-                        va_session_service = VertexAiSessionService(
-                            project=project, location=location, agent_engine_id=engine_id
-                        )
-                        
-                        import asyncio
-                        # We are in a sync thread, use asyncio.run
-                        session_obj = asyncio.run(va_session_service.get_session(app_name=app_name, user_id=user_id, session_id=session_id))
-                        adk_state = session_obj.state if session_obj else {}
-                    else:
-                        session_resp = requests.get(f"{AGENT_ENDPOINT}/apps/{app_name}/users/{user_id}/sessions/{session_id}")
-                        if session_resp.status_code == 200:
-                            session_data = session_resp.json()
-                            adk_state = session_data.get("state", {})
-                        else:
-                            print(f"Warning: Failed to fetch ADK session state: {session_resp.text}")
-                            adk_state = {}
-                        
-                    if adk_state:
-                        # Merge our workflow updates (stage, active agent) into the ADK state
-                        adk_state.setdefault('workflow', {})['active_agent'] = author
-                        if author == "DocumentIngestion":
-                            adk_state['workflow']['stage'] = 'intake'
-                        elif author == "SolutionAgent":
-                            adk_state['workflow']['stage'] = 'drafting'
-                        elif author == "Governance":
-                            adk_state['workflow']['stage'] = 'review'
-                        elif author == "Editor":
-                            adk_state['workflow']['stage'] = 'finalization'
-                            
-                        state_manager.update_state(adk_state)
-                    
-                    # Append event with CLEAN string
-                    state_manager.append_event({
-                        "author": author,
-                        "content": content_str
-                    })
+                        print(f"Warning: Failed to fetch ADK session state: {session_resp.text}")
+                        adk_state = {}
+
+                if adk_state:
+                    adk_state.setdefault('workflow', {})['active_agent'] = author
+                    if author == "DocumentIngestion":
+                        adk_state['workflow']['stage'] = 'intake'
+                    elif author == "SolutionAgent":
+                        adk_state['workflow']['stage'] = 'drafting'
+                    elif author == "Governance":
+                        adk_state['workflow']['stage'] = 'review'
+                    elif author == "Editor":
+                        adk_state['workflow']['stage'] = 'finalization'
+
+                    state_manager.update_state(adk_state)
+
+                state_manager.append_event({
+                    "author": author,
+                    "content": content_str
+                })
 
         # Update status to completed when the stream ends successfully
         print("Workflow stream completed successfully.")

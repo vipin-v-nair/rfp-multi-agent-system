@@ -4,6 +4,9 @@ set -e
 # Unset service account key so ADC is used
 unset GOOGLE_APPLICATION_CREDENTIALS
 
+# Fix Windows encoding issue — ADK deploy output contains emoji that cp1252 can't encode
+export PYTHONIOENCODING=utf-8
+
 echo "Preparing Agent Engine deployment package..."
 mkdir -p deploy_staging/agents
 cp agents/*.py deploy_staging/agents/
@@ -11,6 +14,8 @@ cp -r mcp_stubs deploy_staging/
 cp -r mcp_servers deploy_staging/
 cp -r demo_data deploy_staging/
 cp a2ui_setup.py deploy_staging/
+cp mcp_client.py deploy_staging/
+cp threaded_mcp_toolset.py deploy_staging/
 cp state.py deploy_staging/
 cp requirements.txt deploy_staging/
 # Copy .env so Agent Engine picks up MCP URLs and other runtime config
@@ -52,7 +57,9 @@ fi
 CMD="$VENV_BIN/adk deploy agent_engine \
   --project=${GOOGLE_CLOUD_PROJECT} \
   --region=${GCP_REGION} \
-  --display_name=rfp_system"
+  --display_name=rfp_system \
+  --otel_to_cloud \
+  --trace_to_cloud"
 
 # Add Agent Engine ID for in-place updates if available and valid
 if [ -n "$AGENT_ENGINE_ID" ] && [[ "$AGENT_ENGINE_ID" != *"your-engine-id"* ]]; then

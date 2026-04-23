@@ -2,11 +2,8 @@ import os
 import json
 from google.adk.agents import LlmAgent
 from google.adk.tools import ToolContext
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConnectionParams
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
-
-_WORKSPACE_MCP_URL = os.getenv("WORKSPACE_MCP_URL", "http://127.0.0.1:3003/mcp")
 
 def build_section_brief(section_id, approved_claims, requirements):
     section_claims = []
@@ -143,13 +140,5 @@ solution_agent = LlmAgent(
     name="Solution",
     model="gemini-2.5-pro",
     instruction=instruction,
-    tools=[
-        MCPToolset(
-            connection_params=StreamableHTTPConnectionParams(
-                url=_WORKSPACE_MCP_URL,
-            )
-        ),
-        build_section_brief,
-        save_solution_draft,
-    ]
+    tools=[build_section_brief, save_solution_draft]
 )

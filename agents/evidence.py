@@ -2,9 +2,9 @@ import os
 import json
 from google.adk.agents import LlmAgent
 from google.adk.tools import ToolContext
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConnectionParams
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
+from threaded_mcp_toolset import ThreadedMCPToolset
 
 _KNOWLEDGE_MCP_URL = os.getenv("KNOWLEDGE_MCP_URL", "http://127.0.0.1:3001/mcp")
 
@@ -16,7 +16,6 @@ def save_evidence_workspace(workspace_json: str, tool_context: ToolContext) -> D
         workspace = json.loads(workspace_json)
         tool_context.state['evidence_workspace'] = workspace
 
-        # Persist to file for dashboard
         try:
             if os.path.exists('workflow_state.json'):
                 with open('workflow_state.json', 'r', encoding='utf-8') as f:
@@ -32,7 +31,6 @@ def save_evidence_workspace(workspace_json: str, tool_context: ToolContext) -> D
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
 
 
-# Generate A2UI enriched instructions
 instruction = generate_ui_instruction(
     role="You are the Evidence Agent. Your job is to gather evidence for RFP requirements.",
     workflow="""Read requirements from 'rfp_analysis' in state.
@@ -62,11 +60,7 @@ evidence_agent = LlmAgent(
     model="gemini-2.5-pro",
     instruction=instruction,
     tools=[
-        MCPToolset(
-            connection_params=StreamableHTTPConnectionParams(
-                url=_KNOWLEDGE_MCP_URL,
-            )
-        ),
+        ThreadedMCPToolset(url=_KNOWLEDGE_MCP_URL),
         save_evidence_workspace,
     ]
 )
