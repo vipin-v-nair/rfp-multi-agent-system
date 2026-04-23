@@ -9,3 +9,6 @@ demo_data/rfp/uploads/
 .DS_Store
 deploy_staging/
 .claude/
+mcp_deploy/
+deploy_staging_tmp*/
+apps/rfp_system/.adk/

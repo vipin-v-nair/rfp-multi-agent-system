@@ -1,13 +1,24 @@
 """
 Workspace MCP Server
 
-Exposes workspace management tools via the MCP protocol (stdio transport).
-Replaces mcp_stubs/workspace.py with a real MCP server implementation.
+Supports two transport modes controlled by environment variables:
+  - stdio (default): spawned as subprocess by ADK agents
+  - streamable-http:  runs as standalone HTTP service on $PORT
+
+Environment variables:
+  MCP_TRANSPORT  "stdio" | "http"   (default: stdio)
+  PORT           port number        (default: 3003, Cloud Run sets this automatically)
+  MCP_HOST       bind host          (default: 127.0.0.1, use 0.0.0.0 for Cloud Run)
 """
+import os
 import sys
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("workspace")
+_transport = os.getenv("MCP_TRANSPORT", "stdio")
+_host = os.getenv("MCP_HOST", "127.0.0.1")
+_port = int(os.getenv("PORT", "3003"))
+
+mcp = FastMCP("workspace", host=_host, port=_port, stateless_http=True)
 
 
 @mcp.tool()
@@ -19,11 +30,7 @@ def save_draft(section_id: str, content: str) -> dict:
         content: The draft text content to save.
     """
     print(f"Workspace MCP Server: Saving draft for section '{section_id}'", file=sys.stderr)
-    return {
-        "status": "success",
-        "section_id": section_id,
-        "saved": True,
-    }
+    return {"status": "success", "section_id": section_id, "saved": True}
 
 
 @mcp.tool()
@@ -34,11 +41,7 @@ def get_draft(section_id: str) -> dict:
         section_id: Unique identifier for the section to retrieve.
     """
     print(f"Workspace MCP Server: Retrieving draft for section '{section_id}'", file=sys.stderr)
-    return {
-        "status": "success",
-        "section_id": section_id,
-        "content": f"Draft content for {section_id}",
-    }
+    return {"status": "success", "section_id": section_id, "content": f"Draft content for {section_id}"}
 
 
 @mcp.tool()
@@ -50,10 +53,7 @@ def log_event(event_type: str, summary: str) -> dict:
         summary: Human-readable description of what happened.
     """
     print(f"Workspace MCP Server: Logging event '{event_type}': {summary}", file=sys.stderr)
-    return {
-        "status": "success",
-        "logged": True,
-    }
+    return {"status": "success", "logged": True}
 
 
 @mcp.tool()
@@ -64,12 +64,12 @@ def publish_response(content: dict) -> dict:
         content: Dictionary containing the final response draft and metadata.
     """
     print("Workspace MCP Server: Publishing final response", file=sys.stderr)
-    return {
-        "status": "success",
-        "published": True,
-        "url": "http://example.com/published_rfp",
-    }
+    return {"status": "success", "published": True, "url": "http://example.com/published_rfp"}
 
 
 if __name__ == "__main__":
-    mcp.run()
+    if _transport == "http":
+        print(f"Workspace MCP Server: Starting streamable-http on {_host}:{_port}/mcp", file=sys.stderr)
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run(transport="stdio")

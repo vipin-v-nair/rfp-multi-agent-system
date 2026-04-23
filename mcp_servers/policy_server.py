@@ -1,15 +1,25 @@
 """
 Policy Validation MCP Server
 
-Exposes policy validation tools via the MCP protocol (stdio transport).
-Replaces mcp_stubs/policy.py with a real MCP server implementation.
+Supports two transport modes controlled by environment variables:
+  - stdio (default): spawned as subprocess by ADK agents
+  - streamable-http:  runs as standalone HTTP service on $PORT
+
+Environment variables:
+  MCP_TRANSPORT  "stdio" | "http"   (default: stdio)
+  PORT           port number        (default: 3002, Cloud Run sets this automatically)
+  MCP_HOST       bind host          (default: 127.0.0.1, use 0.0.0.0 for Cloud Run)
 """
 import json
 import os
 import sys
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("policy")
+_transport = os.getenv("MCP_TRANSPORT", "stdio")
+_host = os.getenv("MCP_HOST", "127.0.0.1")
+_port = int(os.getenv("PORT", "3002"))
+
+mcp = FastMCP("policy", host=_host, port=_port, stateless_http=True)
 
 
 def _get_fixtures_path() -> str:
@@ -66,4 +76,8 @@ def check_compliance(text: str) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    if _transport == "http":
+        print(f"Policy MCP Server: Starting streamable-http on {_host}:{_port}/mcp", file=sys.stderr)
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run(transport="stdio")

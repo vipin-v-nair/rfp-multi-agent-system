@@ -1,15 +1,25 @@
 """
 Knowledge Base MCP Server
 
-Exposes knowledge base tools via the MCP protocol (stdio transport).
-Replaces mcp_stubs/knowledge.py with a real MCP server implementation.
+Supports two transport modes controlled by environment variables:
+  - stdio (default): spawned as subprocess by ADK agents
+  - streamable-http:  runs as standalone HTTP service on $PORT
+
+Environment variables:
+  MCP_TRANSPORT  "stdio" | "http"   (default: stdio)
+  PORT           port number        (default: 3001, Cloud Run sets this automatically)
+  MCP_HOST       bind host          (default: 127.0.0.1, use 0.0.0.0 for Cloud Run)
 """
 import json
 import os
 import sys
 from mcp.server.fastmcp import FastMCP
 
-mcp = FastMCP("knowledge")
+_transport = os.getenv("MCP_TRANSPORT", "stdio")
+_host = os.getenv("MCP_HOST", "127.0.0.1")
+_port = int(os.getenv("PORT", "3001"))
+
+mcp = FastMCP("knowledge", host=_host, port=_port, stateless_http=True)
 
 
 def _get_fixtures_path() -> str:
@@ -47,16 +57,10 @@ def get_evidence(query: str) -> dict:
                 "query": query,
                 "evidence": results,
                 "customer_references": [
-                    {
-                        "reference_id": "ref_001",
-                        "display_name": "Tier-1 North American Bank",
-                        "usage": "Supported modernization of service operations",
-                    },
-                    {
-                        "reference_id": "ref_002",
-                        "display_name": "Global Financial Institution",
-                        "usage": "Enabled phased transformation approach",
-                    },
+                    {"reference_id": "ref_001", "display_name": "Tier-1 North American Bank",
+                     "usage": "Supported modernization of service operations"},
+                    {"reference_id": "ref_002", "display_name": "Global Financial Institution",
+                     "usage": "Enabled phased transformation approach"},
                 ],
                 "certifications": [
                     {"name": "ISO 27001"},
@@ -71,16 +75,10 @@ def get_evidence(query: str) -> dict:
         "query": query,
         "evidence": ["No specific evidence found in corpus."],
         "customer_references": [
-            {
-                "reference_id": "ref_001",
-                "display_name": "Tier-1 North American Bank",
-                "usage": "Supported modernization of service operations",
-            },
-            {
-                "reference_id": "ref_002",
-                "display_name": "Global Financial Institution",
-                "usage": "Enabled phased transformation approach",
-            },
+            {"reference_id": "ref_001", "display_name": "Tier-1 North American Bank",
+             "usage": "Supported modernization of service operations"},
+            {"reference_id": "ref_002", "display_name": "Global Financial Institution",
+             "usage": "Enabled phased transformation approach"},
         ],
         "certifications": [
             {"name": "ISO 27001"},
@@ -104,4 +102,8 @@ def get_approved_claims() -> list:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    if _transport == "http":
+        print(f"Knowledge MCP Server: Starting streamable-http on {_host}:{_port}/mcp", file=sys.stderr)
+        mcp.run(transport="streamable-http")
+    else:
+        mcp.run(transport="stdio")

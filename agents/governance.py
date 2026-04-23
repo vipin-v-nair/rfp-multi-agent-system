@@ -1,14 +1,12 @@
 import os
-import sys
 import json
 from google.adk.agents import LlmAgent
 from google.adk.tools import ToolContext
-from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StdioConnectionParams
-from mcp import StdioServerParameters
+from google.adk.tools.mcp_tool.mcp_toolset import MCPToolset, StreamableHTTPConnectionParams
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
 
-_MCP_SERVERS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "mcp_servers")
+_POLICY_MCP_URL = os.getenv("POLICY_MCP_URL", "http://127.0.0.1:3002/mcp")
 
 
 def save_governance_review(review_json: str, tool_context: ToolContext) -> Dict:
@@ -42,11 +40,8 @@ governance_agent = LlmAgent(
     instruction=instruction,
     tools=[
         MCPToolset(
-            connection_params=StdioConnectionParams(
-                server_params=StdioServerParameters(
-                    command=sys.executable,
-                    args=[os.path.join(_MCP_SERVERS_DIR, "policy_server.py")],
-                )
+            connection_params=StreamableHTTPConnectionParams(
+                url=_POLICY_MCP_URL,
             )
         ),
         save_governance_review,

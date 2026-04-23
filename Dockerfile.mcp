@@ -1,0 +1,17 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY requirements-mcp.txt .
+RUN pip install --no-cache-dir -r requirements-mcp.txt
+
+COPY mcp_servers/ ./mcp_servers/
+COPY demo_data/ ./demo_data/
+COPY mcp_main.py .
+
+# Cloud Run sets PORT automatically. MCP_HOST must be 0.0.0.0 to accept traffic.
+ENV MCP_TRANSPORT=http
+ENV MCP_HOST=0.0.0.0
+
+# MCP_SERVER must be set per Cloud Run service (knowledge | policy | workspace)
+CMD ["python", "mcp_main.py"]

@@ -13,6 +13,8 @@ cp -r demo_data deploy_staging/
 cp a2ui_setup.py deploy_staging/
 cp state.py deploy_staging/
 cp requirements.txt deploy_staging/
+# Copy .env so Agent Engine picks up MCP URLs and other runtime config
+cp .env deploy_staging/.env
 
 # Write the agent.py entry point for Agent Engine
 cat << 'EOF' > deploy_staging/agent.py
