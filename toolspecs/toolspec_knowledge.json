@@ -1,0 +1,40 @@
+{
+  "tools": [
+    {
+      "name": "get_evidence",
+      "description": "Retrieve evidence from the knowledge base for a given query. Searches approved claims and returns matching evidence, customer references, and certifications relevant to the query.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": ["query"]
+      },
+      "annotations": {
+        "title": "Get Evidence",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_approved_claims",
+      "description": "Retrieve all approved claims from the knowledge base.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {}
+      },
+      "annotations": {
+        "title": "Get Approved Claims",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

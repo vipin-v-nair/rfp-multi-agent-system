@@ -5,8 +5,9 @@ from google.adk.tools import ToolContext
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
 from threaded_mcp_toolset import ThreadedMCPToolset
+from agent_registry_lookup import get_mcp_url
 
-_POLICY_MCP_URL = os.getenv("POLICY_MCP_URL", "http://127.0.0.1:3002/mcp")
+_POLICY_MCP_URL = get_mcp_url("rfp-mcp-policy", fallback_env_var="POLICY_MCP_URL")
 
 
 def save_governance_review(review_json: str, tool_context: ToolContext) -> Dict:

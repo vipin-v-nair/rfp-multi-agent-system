@@ -1,0 +1,97 @@
+{
+  "tools": [
+    {
+      "name": "save_draft",
+      "description": "Save a draft section to the workspace.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "title": "Section Id",
+            "type": "string"
+          },
+          "content": {
+            "title": "Content",
+            "type": "string"
+          }
+        },
+        "required": ["section_id", "content"]
+      },
+      "annotations": {
+        "title": "Save Draft",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_draft",
+      "description": "Retrieve a previously saved draft section from the workspace.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "section_id": {
+            "title": "Section Id",
+            "type": "string"
+          }
+        },
+        "required": ["section_id"]
+      },
+      "annotations": {
+        "title": "Get Draft",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "log_event",
+      "description": "Log a workflow event to the workspace audit trail.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "event_type": {
+            "title": "Event Type",
+            "type": "string"
+          },
+          "summary": {
+            "title": "Summary",
+            "type": "string"
+          }
+        },
+        "required": ["event_type", "summary"]
+      },
+      "annotations": {
+        "title": "Log Event",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "publish_response",
+      "description": "Publish the final assembled RFP response to the workspace.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "title": "Content",
+            "type": "object",
+            "additionalProperties": true
+          }
+        },
+        "required": ["content"]
+      },
+      "annotations": {
+        "title": "Publish Response",
+        "readOnlyHint": false,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

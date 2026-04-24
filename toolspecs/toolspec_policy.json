@@ -1,0 +1,46 @@
+{
+  "tools": [
+    {
+      "name": "validate_claim",
+      "description": "Validate a claim against the approved policy claim list. Returns whether the claim is approved and the reason.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "claim": {
+            "title": "Claim",
+            "type": "string"
+          }
+        },
+        "required": ["claim"]
+      },
+      "annotations": {
+        "title": "Validate Claim",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "check_compliance",
+      "description": "Check a block of text for compliance against policy rules. Returns compliance status and any findings.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": ["text"]
+      },
+      "annotations": {
+        "title": "Check Compliance",
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": false
+      }
+    }
+  ]
+}
