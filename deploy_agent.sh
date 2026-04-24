@@ -10,7 +10,6 @@ export PYTHONIOENCODING=utf-8
 echo "Preparing Agent Engine deployment package..."
 mkdir -p deploy_staging/agents
 cp agents/*.py deploy_staging/agents/
-cp -r mcp_stubs deploy_staging/
 cp -r mcp_servers deploy_staging/
 cp -r demo_data deploy_staging/
 cp a2ui_setup.py deploy_staging/
