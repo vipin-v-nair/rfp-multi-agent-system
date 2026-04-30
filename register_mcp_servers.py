@@ -16,9 +16,6 @@ NOTE ON API STATUS (as of April 2026):
     ID: rfp-mcp-policy
     URL: <POLICY_MCP_URL from .env>
 
-    ID: rfp-mcp-workspace
-    URL: <WORKSPACE_MCP_URL from .env>
-
   Protocol for all: CUSTOM / HTTP_JSON / protocolVersion 2024-11-05
 
 This script still verifies that the Agent Registry API is reachable and
@@ -54,7 +51,6 @@ LOCATION = os.getenv("AGENT_REGISTRY_LOCATION", os.getenv("GCP_REGION", "us-cent
 
 KNOWLEDGE_MCP_URL = os.getenv("KNOWLEDGE_MCP_URL")
 POLICY_MCP_URL = os.getenv("POLICY_MCP_URL")
-WORKSPACE_MCP_URL = os.getenv("WORKSPACE_MCP_URL")
 
 AGENT_REGISTRY_BASE = "https://agentregistry.googleapis.com/v1alpha"
 
@@ -94,26 +90,6 @@ MCP_SERVERS = [
                 "interfaces": [
                     {
                         "url": POLICY_MCP_URL,
-                        "protocolBinding": "HTTP_JSON",
-                    }
-                ],
-            }
-        ],
-    },
-    {
-        "mcpServerId": "rfp-mcp-workspace",
-        "displayName": "RFP Workspace MCP Server",
-        "description": (
-            "Manages draft sections and publishes the final RFP response. "
-            "Tools: save_draft, get_draft, log_event, publish_response."
-        ),
-        "protocols": [
-            {
-                "type": "CUSTOM",
-                "protocolVersion": "2024-11-05",
-                "interfaces": [
-                    {
-                        "url": WORKSPACE_MCP_URL,
                         "protocolBinding": "HTTP_JSON",
                     }
                 ],

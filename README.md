@@ -24,7 +24,7 @@ A demo of the **Gemini Enterprise Agent Platform** on Google Cloud. The system t
             │ MCP (streamable-HTTP)
 ┌───────────▼──────────────────────────────────────────────────┐
 │              MCP Servers  (Cloud Run)                         │
-│  rfp-mcp-knowledge  │  rfp-mcp-policy  │  rfp-mcp-workspace   │
+│         rfp-mcp-knowledge         │         rfp-mcp-policy          │
 └──────────────────────────────────────────────────────────────┘
 
 MCP server URLs are discovered at startup from Vertex AI Agent Registry.
@@ -141,8 +141,6 @@ MCP_SERVER=knowledge .venv/bin/python mcp_main.py
 # Terminal 2 — Policy server (port 3002)
 MCP_SERVER=policy .venv/bin/python mcp_main.py
 
-# Terminal 3 — Workspace server (port 3003)
-MCP_SERVER=workspace .venv/bin/python mcp_main.py
 ```
 
 ### 5. Start agent server and UI
@@ -172,7 +170,6 @@ Deploys three Cloud Run services with session affinity enabled (prevents MCP ses
 ```
 KNOWLEDGE_MCP_URL=https://rfp-mcp-knowledge-xxxx-uc.a.run.app/mcp
 POLICY_MCP_URL=https://rfp-mcp-policy-xxxx-uc.a.run.app/mcp
-WORKSPACE_MCP_URL=https://rfp-mcp-workspace-xxxx-uc.a.run.app/mcp
 ```
 
 ### Step 2 — Register MCP servers in Agent Registry
@@ -187,7 +184,6 @@ MCP server URLs are discovered at runtime via the Agent Registry. Register each 
 |---|---|
 | `rfp-mcp-knowledge` | `KNOWLEDGE_MCP_URL` from `.env` |
 | `rfp-mcp-policy` | `POLICY_MCP_URL` from `.env` |
-| `rfp-mcp-workspace` | `WORKSPACE_MCP_URL` from `.env` |
 
 Set protocol to **CUSTOM / HTTP_JSON / 2024-11-05** for all three.
 
@@ -281,7 +277,7 @@ rfp-multi-agent-system/
 ├── mcp_servers/                   # FastMCP server implementations (Cloud Run)
 │   ├── knowledge_server.py        # get_evidence, get_approved_claims
 │   ├── policy_server.py           # validate_claim, check_compliance
-│   └── workspace_server.py        # save_draft, get_draft, log_event, publish_response
+│   └── workspace_server.py        # save_draft, get_draft, log_event, publish_response (not wired — available for future use)
 │
 ├── mcp_stubs/                     # Local mock MCP implementations (no Cloud Run needed)
 ├── toolspecs/                     # MCP tool JSON specs for Agent Registry registration
