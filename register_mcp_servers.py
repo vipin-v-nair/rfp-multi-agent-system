@@ -22,9 +22,10 @@ This script still verifies that the Agent Registry API is reachable and
 lists any already-registered MCP servers.
 
 NOTE: Even when registered, AgentRegistry.get_mcp_toolset() returns a
-McpToolset which has the anyio cancel scope bug in Agent Engine. Continue
-using ThreadedMCPToolset for actual connections. Registration here is for
-governance and discoverability only.
+McpToolset without use_isolated_event_loop=True. The agents construct
+McpToolset(use_isolated_event_loop=True) directly to avoid the anyio
+CancelScope bug on Agent Engine. Registration here is for governance
+and discoverability only.
 
 Usage:
   python register_mcp_servers.py

@@ -53,7 +53,7 @@ Env-var fallback is used automatically for local development.
 | Runtime | Vertex AI Agent Engine (Reasoning Engine) |
 | Egress governance | Vertex AI Agent Gateway (Agent-to-Anywhere) |
 | MCP discovery | Vertex AI Agent Registry |
-| MCP transport | MCP streamable-HTTP via `ThreadedMCPToolset` |
+| MCP transport | MCP streamable-HTTP via `McpToolset(use_isolated_event_loop=True)` |
 | MCP servers | FastMCP on Cloud Run |
 | UI | FastAPI + A2UI |
 | State | Cloud Firestore |
@@ -285,8 +285,6 @@ rfp-multi-agent-system/
 ├── apps/rfp_system/               # ADK app entry point for local `adk api_server`
 │
 ├── agent_registry_lookup.py       # Resolves MCP URLs from Agent Registry; env-var fallback
-├── threaded_mcp_toolset.py        # Custom BaseToolset — isolates MCP calls in threads to
-│                                  # avoid anyio cancel scope errors in Agent Engine
 ├── bind_gateway.py                # Binds an existing Agent Engine to an Agent Gateway
 ├── deploy_with_gateway.py         # Creates a new Agent Engine with gateway config at create time
 │
@@ -315,16 +313,18 @@ rfp-multi-agent-system/
 
 ## Key Technical Notes
 
-### ThreadedMCPToolset
+### Isolated event loop for MCP on Agent Engine
 The standard ADK `McpToolset` fails on Vertex AI Agent Engine because anyio's `CancelScope` binds to the asyncio task that enters it — Agent Engine can context-switch tasks between entering and exiting the scope, triggering `"Attempted to exit cancel scope in a different task than it was entered in"`.
 
-`ThreadedMCPToolset` (in `threaded_mcp_toolset.py`) fixes this by running every MCP operation in a dedicated thread with its own isolated event loop. Cancel scopes are created and destroyed entirely within that loop with no cross-task contamination. It also includes automatic retry logic (up to 3 attempts) for transient 401/connection errors caused by Cloud Run autoscaling.
+`evidence.py` and `governance.py` use `McpToolset(connection_params=StreamableHTTPConnectionParams(url=...), use_isolated_event_loop=True)` from the ADK fork `vipin-v-nair:fix/mcp-toolset-isolated-event-loop-agent-engine`. This runs every MCP operation in a dedicated thread with an isolated event loop so cancel scopes are created and destroyed entirely within that loop, with no cross-task contamination.
 
 ### Agent Gateway as transparent egress proxy
 When an Agent Engine is bound to an Agent Gateway in **Agent-to-Anywhere** mode, all outbound HTTPS traffic from the engine (to Vertex AI, Agent Registry, MCP servers) is intercepted and routed through the gateway. The gateway installs its own CA certificate into the container at startup. The `agent.py` entry point uses the system cert bundle (`/etc/ssl/certs/ca-certificates.crt`) rather than the bundled `certifi` certs so the gateway CA is trusted.
 
 ### Agent Registry URL resolution
-On startup, `agent_registry_lookup.py` makes a single `GET /mcpServers` call to the Agent Registry and caches all server URLs. MCP tools then use these cached URLs. If the registry is unreachable the agents fall back to `*_MCP_URL` environment variables — local dev works without any registry setup.
+On startup, `agent_registry_lookup.py` makes a single `GET /mcpServers` call to the Agent Registry and caches all server URLs. MCP tools then use these cached URLs. The registry is only in the call path at startup — individual tool calls go directly from Agent Engine → Agent Gateway → MCP server.
+
+Set `ENFORCE_MCP_REGISTRY=true` in `.env` for deployed environments. This disables the env var fallback so any registry miss raises immediately rather than silently using a stale URL. For local development, leave it `false` so the agents fall back to `KNOWLEDGE_MCP_URL` / `POLICY_MCP_URL` without needing a registry.
 
 The registry call requires the runtime identity to have `roles/agentregistry.viewer`. With `AGENT_IDENTITY` set, Agent Engine uses a Workload Identity Federation principal rather than the standard Reasoning Engine service account — grant the WIF principal `roles/agentregistry.viewer` and set `GOOGLE_API_PREVENT_AGENT_TOKEN_SHARING_FOR_GCP_SERVICES=false` in `.env`.
 

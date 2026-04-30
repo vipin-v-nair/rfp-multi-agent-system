@@ -5,8 +5,8 @@ from retry_llm import gemini_pro
 from google.adk.tools import ToolContext
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
+from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 from agent_registry_lookup import get_mcp_url
-from threaded_mcp_toolset import ThreadedMCPToolset
 
 _POLICY_MCP_URL = get_mcp_url("rfp-mcp-policy", fallback_env_var="POLICY_MCP_URL")
 
@@ -40,7 +40,10 @@ governance_agent = LlmAgent(
     model=gemini_pro,
     instruction=instruction,
     tools=[
-        ThreadedMCPToolset(url=_POLICY_MCP_URL),
+        McpToolset(
+            connection_params=StreamableHTTPConnectionParams(url=_POLICY_MCP_URL),
+            use_isolated_event_loop=True,
+        ),
         save_governance_review,
     ]
 )

@@ -14,7 +14,6 @@ cp -r mcp_servers deploy_staging/
 cp -r demo_data deploy_staging/
 cp a2ui_setup.py deploy_staging/
 cp mcp_client.py deploy_staging/
-cp threaded_mcp_toolset.py deploy_staging/
 cp agent_registry_lookup.py deploy_staging/
 cp retry_llm.py deploy_staging/
 cp state.py deploy_staging/

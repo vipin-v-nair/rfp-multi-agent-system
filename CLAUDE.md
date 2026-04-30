@@ -17,7 +17,6 @@ This is a demo about a multi agent system. The demo takes an RFP pdf document as
 -  ├── agent_registry_lookup.py      # Resolves MCP server URLs from Agent Registry                                                                                                                                                              
 -  ├── mcp_client.py                 # Shared MCP HTTP client utilities                                                                                                                                                                          
 -  ├── state.py                      # Shared session state helpers
--  ├── threaded_mcp_toolset.py       # Thread-isolated MCP toolset — avoids anyio cancel scope errors in Agent Engine                                                                                                                                                                
 -    │                                                       
 -  ├── agents/                       # Multi-agent system                                                                                                                                                                                        
 -     │   ├── coordinator.py            # Root agent — routes to sub-agents
@@ -52,7 +51,7 @@ This is a demo about a multi agent system. The demo takes an RFP pdf document as
 
     - Agent Engine: Deployed via deploy_agent_with_gateway.sh (new engine + gateway) or deploy_agent.sh (in-place update). The gateway deploy uses client.agent_engines.create() with source_packages — NOT adk deploy agent_engine —
     because the ADK CLI doesn't support agent_gateway_config at create time.
-    - MCP tools: Both evidence.py and governance.py use ThreadedMCPToolset from threaded_mcp_toolset.py to avoid anyio CancelScope errors in Agent Engine. Each MCP call runs in an isolated thread with its own event loop.
+    - MCP tools: Both evidence.py and governance.py use McpToolset(use_isolated_event_loop=True) with StreamableHTTPConnectionParams from the ADK fork vipin-v-nair:fix/mcp-toolset-isolated-event-loop-agent-engine. This avoids anyio CancelScope cross-task errors in Agent Engine — each MCP operation runs in a dedicated thread with an isolated event loop.
     - Resuming on a new machine: the active Agent Engine ID is NOT in this repo (it lives in .env which is gitignored). To retrieve it on a fresh clone, run:
         gcloud ai reasoning-engines list --region=us-central1 --project=$(gcloud config get-value project)
       Copy the resource name of the rfp_system engine into .env as AGENT_ENGINE_ID.

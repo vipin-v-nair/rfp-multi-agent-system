@@ -5,8 +5,8 @@ from retry_llm import gemini_pro
 from google.adk.tools import ToolContext
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
+from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 from agent_registry_lookup import get_mcp_url
-from threaded_mcp_toolset import ThreadedMCPToolset
 
 _KNOWLEDGE_MCP_URL = get_mcp_url("rfp-mcp-knowledge", fallback_env_var="KNOWLEDGE_MCP_URL")
 
@@ -62,7 +62,10 @@ evidence_agent = LlmAgent(
     model=gemini_pro,
     instruction=instruction,
     tools=[
-        ThreadedMCPToolset(url=_KNOWLEDGE_MCP_URL),
+        McpToolset(
+            connection_params=StreamableHTTPConnectionParams(url=_KNOWLEDGE_MCP_URL),
+            use_isolated_event_loop=True,
+        ),
         save_evidence_workspace,
     ]
 )
