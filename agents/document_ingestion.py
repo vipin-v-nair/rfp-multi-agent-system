@@ -1,4 +1,5 @@
 from google.adk.agents import LlmAgent
+from retry_llm import gemini_pro
 from google.adk.tools import ToolContext
 from typing import Dict
 import json
@@ -116,7 +117,7 @@ instruction = generate_ui_instruction(
 
 document_ingestion_agent = LlmAgent(
     name="DocumentIngestion",
-    model="gemini-2.5-pro",
+    model=gemini_pro,
     instruction=instruction,
     tools=[
         register_source_document, 

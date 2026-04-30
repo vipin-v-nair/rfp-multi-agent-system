@@ -13,6 +13,12 @@ Fix:
   there. The anyio CancelScope is created and destroyed entirely within that
   isolated loop — no cross-task contamination from Agent Engine's scheduler.
 
+Retry logic:
+  Cloud Run autoscaling can cause a 401 when an initialize request lands on one
+  pod and the subsequent tools/list or tool-call lands on a freshly-scaled pod
+  that has no session context. Each retry creates a brand-new connection so the
+  entire handshake lands on a single pod.
+
 This gives us:
   - True MCP tool discovery via tools/list (no hardcoded tool names)
   - Full MCP protocol: init handshake → session → schema-validated call
@@ -23,14 +29,56 @@ This gives us:
 
 import asyncio
 import json
+import logging
+import time
 from typing import Any, List, Optional, Union
 
+import httpx
 from google.adk.tools.base_tool import BaseTool
 from google.adk.tools.base_toolset import BaseToolset
 from google.adk.tools.tool_context import ToolContext
 from google.genai import types
 from mcp.client.session import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
+
+logger = logging.getLogger(__name__)
+
+_MAX_RETRIES = 3
+_RETRY_DELAY_S = 0.5
+
+
+# ---------------------------------------------------------------------------
+# Retry helpers
+# ---------------------------------------------------------------------------
+
+def _is_retryable(exc: Exception) -> bool:
+    """Return True for transient errors worth retrying (401, connection drops)."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        return exc.response.status_code in (401, 503, 502)
+    if isinstance(exc, (httpx.ConnectError, httpx.RemoteProtocolError, httpx.ReadError)):
+        return True
+    # 401/connection errors wrapped in ExceptionGroup by anyio TaskGroup
+    if isinstance(exc, ExceptionGroup):
+        return any(_is_retryable(e) for e in exc.exceptions)
+    # Fallback: check string representation
+    return "401" in str(exc) or "Unauthorized" in str(exc)
+
+
+def _run_with_retry(fn, *args) -> Any:
+    """Run fn(*args) synchronously, retrying on transient errors."""
+    last_exc: Exception = RuntimeError("No attempts made")
+    for attempt in range(_MAX_RETRIES):
+        if attempt > 0:
+            time.sleep(_RETRY_DELAY_S)
+            logger.warning("MCP retry %d/%d for %s", attempt, _MAX_RETRIES - 1, args[0])
+        try:
+            return fn(*args)
+        except Exception as exc:
+            if _is_retryable(exc):
+                last_exc = exc
+                continue
+            raise
+    raise last_exc
 
 
 # ---------------------------------------------------------------------------
@@ -46,11 +94,8 @@ def _cancel_pending(loop: asyncio.AbstractEventLoop) -> None:
         loop.run_until_complete(asyncio.gather(*pending, return_exceptions=True))
 
 
-def _mcp_list_tools(url: str) -> list:
-    """
-    Synchronous helper: open an MCP session, run tools/list, return raw tools.
-    Must be called from a non-async context (i.e., from a thread).
-    """
+def _mcp_list_tools_once(url: str) -> list:
+    """Single attempt: open an MCP session, run tools/list, return raw tools."""
     async def _async():
         async with streamablehttp_client(url) as (read, write, _):
             async with ClientSession(read, write) as session:
@@ -67,11 +112,8 @@ def _mcp_list_tools(url: str) -> list:
         loop.close()
 
 
-def _mcp_call_tool(url: str, tool_name: str, arguments: dict) -> Any:
-    """
-    Synchronous helper: open an MCP session, call a tool, return parsed result.
-    Must be called from a non-async context (i.e., from a thread).
-    """
+def _mcp_call_tool_once(url: str, tool_name: str, arguments: dict) -> Any:
+    """Single attempt: open an MCP session, call a tool, return parsed result."""
     async def _async():
         async with streamablehttp_client(url) as (read, write, _):
             async with ClientSession(read, write) as session:
@@ -98,6 +140,14 @@ def _mcp_call_tool(url: str, tool_name: str, arguments: dict) -> Any:
     finally:
         _cancel_pending(loop)
         loop.close()
+
+
+def _mcp_list_tools(url: str) -> list:
+    return _run_with_retry(_mcp_list_tools_once, url)
+
+
+def _mcp_call_tool(url: str, tool_name: str, arguments: dict) -> Any:
+    return _run_with_retry(_mcp_call_tool_once, url, tool_name, arguments)
 
 
 # ---------------------------------------------------------------------------
@@ -161,7 +211,8 @@ class ThreadedMCPToolset(BaseToolset):
     discovers its tools dynamically, and exposes them as ADK-compatible tools.
 
     All MCP I/O runs in isolated threads so the anyio cancel scope issue in
-    Vertex AI Agent Engine is completely avoided.
+    Vertex AI Agent Engine is completely avoided. Transient 401 errors caused
+    by Cloud Run autoscaling are retried automatically.
 
     Usage in an LlmAgent:
         LlmAgent(

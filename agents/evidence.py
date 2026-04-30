@@ -1,11 +1,12 @@
 import os
 import json
 from google.adk.agents import LlmAgent
+from retry_llm import gemini_pro
 from google.adk.tools import ToolContext
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
-from threaded_mcp_toolset import ThreadedMCPToolset
 from agent_registry_lookup import get_mcp_url
+from threaded_mcp_toolset import ThreadedMCPToolset
 
 _KNOWLEDGE_MCP_URL = get_mcp_url("rfp-mcp-knowledge", fallback_env_var="KNOWLEDGE_MCP_URL")
 
@@ -58,7 +59,7 @@ instruction = generate_ui_instruction(
 
 evidence_agent = LlmAgent(
     name="Evidence",
-    model="gemini-2.5-pro",
+    model=gemini_pro,
     instruction=instruction,
     tools=[
         ThreadedMCPToolset(url=_KNOWLEDGE_MCP_URL),

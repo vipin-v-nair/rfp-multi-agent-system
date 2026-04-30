@@ -1,11 +1,12 @@
 import os
 import json
 from google.adk.agents import LlmAgent
+from retry_llm import gemini_pro
 from google.adk.tools import ToolContext
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
-from threaded_mcp_toolset import ThreadedMCPToolset
 from agent_registry_lookup import get_mcp_url
+from threaded_mcp_toolset import ThreadedMCPToolset
 
 _POLICY_MCP_URL = get_mcp_url("rfp-mcp-policy", fallback_env_var="POLICY_MCP_URL")
 
@@ -36,7 +37,7 @@ instruction = generate_ui_instruction(
 
 governance_agent = LlmAgent(
     name="Governance",
-    model="gemini-2.5-pro",
+    model=gemini_pro,
     instruction=instruction,
     tools=[
         ThreadedMCPToolset(url=_POLICY_MCP_URL),

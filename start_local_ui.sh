@@ -19,4 +19,4 @@ else
 fi
 
 echo "Starting local FastAPI UI on port 8001..."
-AGENT_ENDPOINT=http://127.0.0.1:8080 $VENV_BIN/uvicorn app:app --port 8001
+AGENT_ENDPOINT=http://127.0.0.1:8080 $VENV_BIN/uvicorn app:app --reload --host 0.0.0.0 --port 8001

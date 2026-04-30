@@ -1,6 +1,7 @@
 import os
 import json
 from google.adk.agents import LlmAgent
+from retry_llm import gemini_pro
 from google.adk.tools import ToolContext
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
@@ -94,7 +95,7 @@ instruction = generate_ui_instruction(
 
 editor_agent = LlmAgent(
     name="Editor",
-    model="gemini-2.5-pro",
+    model=gemini_pro,
     instruction=instruction,
     tools=[save_final_response, publish_final_response]
 )

@@ -11,13 +11,13 @@ NOTE ON API STATUS (as of April 2026):
 
   MCP servers to register:
     ID: rfp-mcp-knowledge
-    URL: https://rfp-mcp-knowledge-nhumbrjvla-uc.a.run.app/mcp
+    URL: <KNOWLEDGE_MCP_URL from .env>
 
     ID: rfp-mcp-policy
-    URL: https://rfp-mcp-policy-nhumbrjvla-uc.a.run.app/mcp
+    URL: <POLICY_MCP_URL from .env>
 
     ID: rfp-mcp-workspace
-    URL: https://rfp-mcp-workspace-nhumbrjvla-uc.a.run.app/mcp
+    URL: <WORKSPACE_MCP_URL from .env>
 
   Protocol for all: CUSTOM / HTTP_JSON / protocolVersion 2024-11-05
 
@@ -50,7 +50,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 PROJECT_ID = os.getenv("GOOGLE_CLOUD_PROJECT")
-LOCATION = os.getenv("GCP_REGION", "us-central1")
+LOCATION = os.getenv("AGENT_REGISTRY_LOCATION", os.getenv("GCP_REGION", "us-central1"))
 
 KNOWLEDGE_MCP_URL = os.getenv("KNOWLEDGE_MCP_URL")
 POLICY_MCP_URL = os.getenv("POLICY_MCP_URL")

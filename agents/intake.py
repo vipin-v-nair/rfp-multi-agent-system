@@ -1,4 +1,5 @@
 from google.adk.agents import LlmAgent
+from retry_llm import gemini_pro
 from google.adk.tools import ToolContext
 from typing import Dict
 import json
@@ -51,7 +52,7 @@ instruction = generate_ui_instruction(
 
 intake_agent = LlmAgent(
     name="Intake",
-    model="gemini-2.5-pro",
+    model=gemini_pro,
     instruction=instruction,
     tools=[save_rfp_analysis]
 )

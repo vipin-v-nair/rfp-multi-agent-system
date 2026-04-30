@@ -35,6 +35,7 @@ deploy_service() {
       --project=${GOOGLE_CLOUD_PROJECT} \
       --region=${GCP_REGION} \
       --allow-unauthenticated \
+      --session-affinity \
       --set-env-vars='MCP_SERVER=${mcp_server}' 2>&1 }"
   else
     gcloud beta run deploy "${service}" \
@@ -43,6 +44,7 @@ deploy_service() {
       --project="${GOOGLE_CLOUD_PROJECT}" \
       --region="${GCP_REGION}" \
       --allow-unauthenticated \
+      --session-affinity \
       --set-env-vars="MCP_SERVER=${mcp_server}"
   fi
 }

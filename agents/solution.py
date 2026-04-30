@@ -1,6 +1,7 @@
 import os
 import json
 from google.adk.agents import LlmAgent
+from retry_llm import gemini_pro
 from google.adk.tools import ToolContext
 from typing import Dict
 from a2ui_setup import generate_ui_instruction
@@ -63,7 +64,9 @@ def save_solution_draft(draft_json: str, tool_context: ToolContext) -> Dict:
         workspace = tool_context.state.get('solution_workspace', {})
         workspace[section_id] = content
         tool_context.state['solution_workspace'] = workspace
-        
+
+        saved_sections = sorted(workspace.keys())
+
         # Persist to file for dashboard
         try:
             import os
@@ -77,10 +80,17 @@ def save_solution_draft(draft_json: str, tool_context: ToolContext) -> Dict:
                     json.dump(state, f, indent=2)
         except Exception as e:
             print(f"Solution Agent: Error writing to workflow_state.json: {e}")
-            
+
         return {
             "status": "success",
-            "message": f"Draft {section_id} saved to state.",
+            "saved_section": section_id,
+            "all_saved_sections": saved_sections,
+            "saved_count": len(saved_sections),
+            "message": (
+                f"Draft '{section_id}' saved. "
+                f"{len(saved_sections)}/6 sections saved so far: {saved_sections}. "
+                f"Remaining sections must still be drafted and saved."
+            ),
         }
     except Exception as e:
         return {"status": "error", "message": f"Failed to parse JSON: {e}"}
@@ -99,10 +109,10 @@ instruction = generate_ui_instruction(
     - You do NOT need to redraft all sections, only those affected by the feedback.
 
     Standard Drafting Steps:
-    Draft response sections using the evidence using the following steps: 
+    Draft response sections using the evidence using the following steps:
 
         1. Use build_section_brief tool to build section brief : Create a structured brief for the section with objective, requirements, subsections, and constraints.
-        2. Generate the section draft: 
+        2. Generate the section draft:
             Draft the section as a proposal-quality response using the provided section brief and approved claims.
 
             Requirements:
@@ -115,20 +125,43 @@ instruction = generate_ui_instruction(
             - Respect all global constraints.
 
             The section MUST feel comprehensive, detailed, structured, and supportable.
-            
-        3. Use save section draft tool to save section draft
 
-    
+        3. Use save_solution_draft tool to save the section draft.
+
             For EACH section you draft, you MUST call the `save_solution_draft` tool passing a JSON string containing:
             - "section_id": the ID of the section (e.g., 'security' or 'implementation')
             - "content": the plaintext response draft content
-    
-    Draft sections for 'executive_summary', 'technical_approach', 'security', 'implementation', 'pricing', and 'references'.
-    
+
+    ============================================================
+    HARD REQUIREMENT — READ CAREFULLY:
+    ============================================================
+    You MUST draft and save EXACTLY SIX sections, with these EXACT section_id values:
+        1. executive_summary
+        2. technical_approach
+        3. security
+        4. implementation
+        5. pricing
+        6. references
+
+    You MUST call `save_solution_draft` SIX SEPARATE TIMES — one call per section.
+    Do NOT batch sections into a single tool call. Do NOT include multiple sections in
+    one "content" field. Each `save_solution_draft` call must save EXACTLY ONE section.
+
+    The tool response will tell you how many sections have been saved so far
+    (`saved_count` and `all_saved_sections`). After EACH tool call, check the response:
+    - If `saved_count` is less than 6, you MUST continue calling `save_solution_draft`
+      with the next missing section. Do NOT produce a final text summary yet.
+    - Only after the response shows `saved_count` = 6 (all six section_ids saved) are
+      you allowed to produce the final text summary and end your turn.
+
+    If you produce a final summary before all six saves complete, the workflow will
+    fail downstream and the response will be incomplete. There is NO acceptable
+    shortcut — six sections, six tool calls, in order.
+    ============================================================
 
     CRITICAL: Prefer detailed, comprehensive enterprise-style paragraphs over terse summaries. The user wants LONGER, more detailed sections. Elaborate on the points using the approved claims.
     Use all relevant approved claims when they materially strengthen the section.
-    After calling the tools, generate a final text summary of the drafted sections to update the dashboard.
+    After all six save_solution_draft calls have completed (saved_count = 6), generate a final text summary of the drafted sections to update the dashboard.
     """,
     ui_desc="""Present the drafted sections using rich UI components like Cards. 
     Highlight key solution points. 
@@ -138,7 +171,7 @@ instruction = generate_ui_instruction(
 
 solution_agent = LlmAgent(
     name="Solution",
-    model="gemini-2.5-pro",
+    model=gemini_pro,
     instruction=instruction,
     tools=[build_section_brief, save_solution_draft]
 )
